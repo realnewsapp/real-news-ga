@@ -1,0 +1,70 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "news app",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "Headlines",
+                    "slots": [],
+                    "samples": [
+                        "give me my flash briefing",
+                        "what's going on today",
+                        "what are the headlines",
+                        "give me the headlines",
+                        "read the headlines",
+                        "get the headlines",
+                        "read me the headline"
+                    ]
+                },
+                {
+                    "name": "SourcedNews",
+                    "slots": [
+                        {
+                            "name": "source",
+                            "type": "AMAZON.Organization"
+                        }
+                    ],
+                    "samples": [
+                        "for {source} headlines",
+                        "for {source} news",
+                        "give me {source} 's news",
+                        "give me headlines from {source}",
+                        "give me the headlines from {source}",
+                        "read me news from {source}",
+                        "give me news from {source}",
+                        "read me the news from {source}"
+                    ]
+                },
+                {
+                    "name": "ListSources",
+                    "slots": [],
+                    "samples": [
+                        "list your sources",
+                        "list the available sources",
+                        "list sources",
+                        "who are your sources",
+                        "what are your sources",
+                        "what sources do you have",
+                        "where can i read the news",
+                        "where can i get the news",
+                        "where can i get my news from",
+                        "list the sources"
+                    ]
+                }
+            ],
+            "types": []
+        }
+    }
+}
