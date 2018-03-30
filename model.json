@@ -1,7 +1,7 @@
 {
     "interactionModel": {
         "languageModel": {
-            "invocationName": "news app",
+            "invocationName": "real news",
             "intents": [
                 {
                     "name": "AMAZON.CancelIntent",
@@ -39,8 +39,6 @@
                     "samples": [
                         "for {source} headlines",
                         "for {source} news",
-                        "give me {source} 's news",
-                        "give me headlines from {source}",
                         "give me the headlines from {source}",
                         "read me news from {source}",
                         "give me news from {source}",
@@ -61,6 +59,37 @@
                         "where can i get the news",
                         "where can i get my news from",
                         "list the sources"
+                    ]
+                },
+                {
+                    "name": "AMAZON.YesIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NoIntent",
+                    "samples": []
+                },
+                {
+                    "name": "ReadHeadline",
+                    "slots": [],
+                    "samples": [
+                        "yes",
+                        "read headline summary",
+                        "read headline",
+                        "read me a summary about this headline",
+                        "hear more about this headline"
+                    ]
+                },
+                {
+                    "name": "NextHeadline",
+                    "slots": [],
+                    "samples": [
+                        "no",
+                        "next headline",
+                        "read next headline",
+                        "go to the next headline",
+                        "what is the next headline",
+                        "get the next headline"
                     ]
                 }
             ],
