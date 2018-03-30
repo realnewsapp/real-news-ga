@@ -33,6 +33,8 @@ EXIT_SKILL_MESSAGE = "Thank you for using the News App!"
 
 #This is the message a user will hear after they ask (and hear) about a specific data element.
 # REPROMPT_SPEECH = "Which other source would you like to hear news from?"
+REPROMPT_HEADLINE = "Would you like to hear more about this headline?"
+NEXT_HEADLINE = "Would you like to hear the next headline?"
 
 #This is the message a user will hear when they ask Alexa for help in your skill.
 HELP_MESSAGE = ("You can say something like, \"Alexa, Ask News App to give me the headlines\" to get the headlines "
@@ -226,7 +228,11 @@ def on_intent(request, session):
     elif intent_name == "SourcedNews":
         return sourcedNews(request, intent, session)
     elif intent_name == "Headlines":
-        return headlines()
+        return headlines(session)
+    elif intent_name == "ReadHeadline":
+        return read_headline(session)
+    elif intent_name == "NextHeadline":
+        return headlines(session)
     elif intent_name == "AMAZON.HelpIntent":
         return do_help()
     elif intent_name == "AMAZON.StopIntent":
@@ -368,30 +374,82 @@ def listSources(request):
     msg += "."
     return dialog_response(msg, True)
 
-def headlines():
-    print("before api request")
-    res = api.get_top_headlines()
-    
-    print("after api request")
-    
-    articles = res['articles']
+def headlines(session):
+    if 'articles' not in session['attributes']:
+        print("before api request\n")
+        res = api.get_top_headlines()
+        
+        print("after api request\n")
+        
+        articles = res['articles']
+        session['attributes']['headline_index'] = 0
+        session['attributes']['articles'] = articles
+    else:
+        # End if out of headlines, there's probably a better way to handle this
+        # but this works for now
+        if session['attributes']['headline_index'] == len(session['attributes']['articles']):
+            return do_stop()
+
+        articles = session['attributes']['articles']
     
     print(articles)
+    print("\n")
 
     msg = ""
+    article = articles[session['attributes']['headline_index']]
 
-    for article in articles:
-        msg += "From " + article['source']['name'] + ": "
-        msg += article['title']
-        msg += ". "
-        # obj['description'] = article['description']
-        # articlesDict[article['title']] = article['description']
+    # for article in articles:
+    msg += "From " + article['source']['name'] + ": "
+    msg += article['title']
+    msg += ". "
+    msg += REPROMPT_HEADLINE
+    # obj['description'] = article['description']
+    # articlesDict[article['title']] = article['description']
         
-    print(msg)
-    
-    attributes = {"state":globals()['STATE']}
+    print(msg + "\n\n")
 
-    return response(attributes, response_plain_text(msg, True))
+    print(articles[0])
+    print("\n")
+
+    session['attributes']['headline_index'] += 1
+
+    attributes = {"state":globals()['STATE'], 
+    "headline_index":session['attributes']['headline_index'],
+    "articles":session['attributes']['articles']}
+
+    return response(attributes, response_plain_text(msg, False))
+
+def read_headline(session):
+    if 'articles' not in session['attributes']:
+        print("before api request\n")
+        res = api.get_top_headlines()
+        
+        print("after api request\n")
+        
+        articles = res['articles']
+        session['attributes']['headline_index'] = 0
+        session['attributes']['articles'] = articles
+    else:
+        # End if out of headlines, there's probably a better way to handle this
+        # but this works for now
+        if session['attributes']['headline_index'] == len(session['attributes']['articles']):
+            return do_stop()
+
+        articles = session['attributes']['articles']
+    
+    msg = ""
+    article = articles[session['attributes']['headline_index']]
+
+    # for article in articles:
+    msg += article['description']
+    msg += " "
+    msg += NEXT_HEADLINE
+
+    attributes = {"state":globals()['STATE'], 
+    "headline_index":session['attributes']['headline_index'],
+    "articles":session['attributes']['articles']}
+
+    return response(attributes, response_plain_text(msg, False))
 
 def sourcedNews(request, intent, session):
     if 'value' not in intent['slots']['source']:
