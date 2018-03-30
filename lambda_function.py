@@ -232,6 +232,8 @@ def on_intent(request, session):
     elif intent_name == "ReadHeadline":
         return read_headline(session)
     elif intent_name == "NextHeadline":
+        if 'headline_index' in session['attributes']:
+            session['attributes']['headline_index'] += 1
         return headlines(session)
     elif intent_name == "AMAZON.HelpIntent":
         return do_help()
@@ -375,7 +377,17 @@ def listSources(request):
     return dialog_response(msg, True)
 
 def headlines(session):
-    if 'articles' not in session['attributes']:
+    if 'attributes' not in session:
+        print("before api request\n")
+        res = api.get_top_headlines()
+        
+        print("after api request\n")
+        
+        articles = res['articles']
+        session['attributes'] = {}
+        session['attributes']['headline_index'] = 0
+        session['attributes']['articles'] = articles
+    elif 'articles' not in session['attributes']:
         print("before api request\n")
         res = api.get_top_headlines()
         
@@ -410,8 +422,6 @@ def headlines(session):
 
     print(articles[0])
     print("\n")
-
-    session['attributes']['headline_index'] += 1
 
     attributes = {"state":globals()['STATE'], 
     "headline_index":session['attributes']['headline_index'],
