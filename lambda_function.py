@@ -250,8 +250,14 @@ def on_intent(request, session):
 
 
     elif intent_name == "AMAZON.NoIntent":
-        if 'headline_index' in session['attributes']:
-            session['attributes']['headline_index'] += 1
+        if 'dialogStatus' in session['attributes']:
+            status = session['attributes']['dialogStatus']
+
+            if status == "readDescription":
+                return do_stop()
+                
+            if 'headline_index' in session['attributes']:
+                session['attributes']['headline_index'] += 1
         else:
             print("headline_index didn't exist")
             # elif session['attributes']['dialogStatus'] == 'email':
