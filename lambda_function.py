@@ -229,12 +229,35 @@ def on_intent(request, session):
         return sourcedNews(request, intent, session)
     elif intent_name == "Headlines":
         return headlines(session)
-    elif intent_name == "ReadHeadline":
-        return read_headline(session)
-    elif intent_name == "NextHeadline":
+    # elif intent_name == "ReadHeadline":
+    #     return read_headline(session)
+    # elif intent_name == "NextHeadline":
+    #     if 'headline_index' in session['attributes']:
+    #         session['attributes']['headline_index'] += 1
+    #     return headlines(session)
+    #     
+    elif intent_name == "AMAZON.YesIntent":
+        if 'headline_index' in session['attributes']:
+            if 'dialogStatus' in session['attributes']:
+                if session['attributes']['dialogStatus'] == 'readTitle':
+                    return read_headline(session)
+                elif session['attributes']['dialogStatus'] == 'readDescription':
+                    session['attributes']['headline_index'] += 1
+                    return headlines(session)
+                # elif session['attributes']['dialogStatus'] == 'email':
+                #     return response_plain_text("Would you like me to email you a link to the article?", True)
+            return headlines(session)
+
+
+    elif intent_name == "AMAZON.NoIntent":
         if 'headline_index' in session['attributes']:
             session['attributes']['headline_index'] += 1
+        else:
+            print("headline_index didn't exist")
+            # elif session['attributes']['dialogStatus'] == 'email':
+            #     return response_plain_text("Would you like me to email you a link to the article?", True)
         return headlines(session)
+
     elif intent_name == "AMAZON.HelpIntent":
         return do_help()
     elif intent_name == "AMAZON.StopIntent":
@@ -423,9 +446,12 @@ def headlines(session):
     print(articles[0])
     print("\n")
 
-    attributes = {"state":globals()['STATE'], 
-    "headline_index":session['attributes']['headline_index'],
-    "articles":session['attributes']['articles']}
+    attributes = {
+        "state": globals()['STATE'], 
+        "headline_index": session['attributes']['headline_index'],
+        "articles": session['attributes']['articles'],
+        "dialogStatus": "readTitle"
+    }
 
     return response(attributes, response_plain_text(msg, False))
 
@@ -455,9 +481,14 @@ def read_headline(session):
     msg += " "
     msg += NEXT_HEADLINE
 
-    attributes = {"state":globals()['STATE'], 
-    "headline_index":session['attributes']['headline_index'],
-    "articles":session['attributes']['articles']}
+    attributes = {
+        "state" : globals()['STATE'], 
+        "headline_index" : session['attributes']['headline_index'],
+        "articles" : session['attributes']['articles'],
+        "dialogStatus": "readDescription"
+    }
+
+    print('in read_headline')
 
     return response(attributes, response_plain_text(msg, False))
 

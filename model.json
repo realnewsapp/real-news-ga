@@ -63,33 +63,16 @@
                 },
                 {
                     "name": "AMAZON.YesIntent",
-                    "samples": []
-                },
-                {
-                    "name": "AMAZON.NoIntent",
-                    "samples": []
-                },
-                {
-                    "name": "ReadHeadline",
-                    "slots": [],
                     "samples": [
-                        "yes",
-                        "read headline summary",
-                        "read headline",
-                        "read me a summary about this headline",
-                        "hear more about this headline"
+                        "yes please",
+                        "yes"
                     ]
                 },
                 {
-                    "name": "NextHeadline",
-                    "slots": [],
+                    "name": "AMAZON.NoIntent",
                     "samples": [
-                        "no",
-                        "next headline",
-                        "read next headline",
-                        "go to the next headline",
-                        "what is the next headline",
-                        "get the next headline"
+                        "no thanks",
+                        "no"
                     ]
                 }
             ],
