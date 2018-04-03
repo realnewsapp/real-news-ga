@@ -29,7 +29,7 @@ EXIT_SKILL_MESSAGE = "Thank you for using the News App! Goodbye!"
 
 #This is the message a user will hear after they ask (and hear) about a specific data element.
 # REPROMPT_SPEECH = "Which other source would you like to hear news from?"
-REPROMPT_HEADLINE = "Would you like to hear more about this headline?"
+REPROMPT_HEADLINE = "Would you like to hear more about this?"
 NEXT_HEADLINE = "Would you like to hear the next headline?"
 
 #This is the message a user will hear when they ask Alexa for help in your skill.
