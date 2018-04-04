@@ -7,10 +7,14 @@ api = NewsApiClient(api_key=os.environ['API_KEY'])
 res = api.get_sources()
 sources = res['sources']
 
+print(sources)
+
 sourcesDict = {}
 
 for source in sources:
     sourcesDict[source['name']] = source['id']
+
+# print(sourcesDict)
 
 
 MAX_QUESTION = 10
@@ -25,7 +29,7 @@ SKILLTITLE = "Real News"
 
 #This is the message a user will hear when they try to cancel or stop the skill"
 #or when they finish a quiz.
-EXIT_SKILL_MESSAGE = "Thank you for using the News App! Goodbye!"
+EXIT_SKILL_MESSAGE = "Thank you for using Real News! Goodbye!"
 
 #This is the message a user will hear after they ask (and hear) about a specific data element.
 # REPROMPT_SPEECH = "Which other source would you like to hear news from?"
@@ -34,7 +38,7 @@ NEXT_HEADLINE = "Would you like to hear the next headline?"
 
 #This is the message a user will hear when they ask Alexa for help in your skill.
 HELP_MESSAGE = ("You can say something like, \"Alexa, ask Real to give me the headlines\" to get the headlines "
-                "or \"Alexa, ask Real News about topic\" to retrieve news by topic "
+                "or \"Alexa, ask Real News about topic\" to retrieve news by topic. "
                 "You can also ask for news from a source by saying, \""
                 "Alexa, ask Real News to give me the news from source\". "
                 "What would you like to do?")
@@ -200,14 +204,12 @@ def headlines(session):
 
 def read_headline(session):
     if 'articles' not in session['attributes']:
-        print("before api request\n")
+
         res = api.get_top_headlines()
-        
-        print("after api request\n")
-        
         articles = res['articles']
         session['attributes']['headline_index'] = 0
         session['attributes']['articles'] = articles
+
     else:
         # End if out of headlines, there's probably a better way to handle this
         # but this works for now
@@ -231,40 +233,70 @@ def read_headline(session):
         "dialogStatus": "readDescription"
     }
 
-    print('in read_headline')
-
     return response(attributes, response_plain_text(msg, False))
 
 def sourcedNews(request, intent, session):
-    if 'value' not in intent['slots']['source']:
-        print("avoiding key error")
 
-    requestedSource = intent['slots']['source']['value']
+    if 'attributes' not in session or 'articles' not in session['attributes']:
 
-    """ Split up and format the requested source """
-    formattedSource = ""
-    words = requestedSource.split()
+        requestedSource = intent['slots']['source']['value']
 
-    i = 0
-    for word in words:
-        formattedSource += word[0].upper() + word[1:].lower()
+        """ Split up and format the requested source """
+        formattedSource = ""
+        words = requestedSource.split()
 
-    print("formattedSource: " + formattedSource)
+        for i in range(len(words)):
+            if i == len(words) - 1:
+                formattedSource += words[i].lower()
+            else:
+                formattedSource += words[i].lower() + "-"
 
-    if formattedSource not in sources:
-        return response_plain_text("Sorry. I couldn't find that source.", True)
+        print("formattedSource: " + formattedSource)
 
-    res = api.get_top_headlines(sources=sourcesDict[formattedSource])
+        if formattedSource not in sourcesDict.values():
+            return response_plain_text("Sorry. I couldn't find that source.", True)
 
-    articles = res['articles']
+        res = api.get_top_headlines(sources=formattedSource)
+        print(res)
+        articles = res['articles']
 
-    msg = "From " + formattedSource + ": "
+        session['attributes'] = {}
+        session['attributes']['headline_index'] = 0
+        session['attributes']['articles'] = articles
 
-    for article in articles:
-        msg += article['title']
-        msg += ". "
+    else:
+        # End if out of headlines, there's probably a better way to handle this
+        # but this works for now
+        if session['attributes']['headline_index'] == len(session['attributes']['articles']):
+            return do_stop()
 
-    return response_plain_text(msg, False)
+        articles = session['attributes']['articles']
+    
+    print(articles)
+    print("\n")
+
+    msg = ""
+    article = articles[session['attributes']['headline_index']]
+
+    # for article in articles:
+    msg += "From " + article['source']['name'] + ": "
+    msg += article['title']
+    msg += ". "
+    msg += REPROMPT_HEADLINE
+        
+    print(msg + "\n\n")
+
+    print(articles[0])
+    print("\n")
+
+    attributes = {
+        "state": globals()['STATE'], 
+        "headline_index": session['attributes']['headline_index'],
+        "articles": session['attributes']['articles'],
+        "dialogStatus": "readTitle"
+    }
+
+    return response(attributes, response_plain_text(msg, False))
 
 def do_stop():
     """  stop the app """

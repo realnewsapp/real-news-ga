@@ -41,9 +41,12 @@ class NewsApiClient(object):
         payload = {}
         payload['q'] = q
         payload['sources'] = sources
+        
+        if(sources == None):
+            payload['country'] = country
+            payload['category'] = category
+
         payload['language'] = language
-        payload['country'] = country
-        payload['category'] = category
         payload['pageSize'] = page_size
         payload['page'] = page
 
