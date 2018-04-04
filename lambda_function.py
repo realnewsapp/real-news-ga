@@ -1,5 +1,9 @@
 from newsapi import NewsApiClient
 import os
+import sendgrid
+from sendgrid.helpers.mail import *
+import datetime
+
 
 
 api = NewsApiClient(api_key=os.environ['API_KEY'])
@@ -114,13 +118,21 @@ def on_intent(request, session):
         if 'dialogStatus' in session['attributes']:
             status = session['attributes']['dialogStatus']
 
+            print(session)
+
             if status == "readEmail":
                 return do_stop(session)
+            elif status == "readTitle":
+                if 'headline_index' in session['attributes']:
+                    session['attributes']['headline_index'] += 1
+                
+                return headlines(session)
             elif status == "readDescription":
+                if 'headline_index' in session['attributes']:
+                    session['attributes']['headline_index'] += 1
+                
                 return headlines(session)
                 
-            if 'headline_index' in session['attributes']:
-                session['attributes']['headline_index'] += 1
         else:
             print("headline_index didn't exist")
             # elif session['attributes']['dialogStatus'] == 'email':
@@ -215,6 +227,8 @@ def ask_next_headline(session):
     if 'articlesToEmail' in session['attributes']:
         articlesToEmail = session['attributes']['articlesToEmail']
 
+        print(articlesToEmail)
+
 
     articlesToEmail.append(session['attributes']['headline_index'])
 
@@ -226,9 +240,9 @@ def ask_next_headline(session):
         "articlesToEmail": articlesToEmail
     }
 
-    msg = "Okay. Would you like to hear the next headline?"
+    alexaMsg = "Okay. Would you like to hear the next headline?"
 
-    return response(attributes, response_plain_text(msg, False))
+    return response(attributes, response_plain_text(alexaMsg, False))
 
 def read_headline(session):
     if 'articles' not in session['attributes']:
@@ -346,7 +360,60 @@ def do_stop(session):
 
     """ check if there are any articles to be emailed """
 
+    print('session in do_stop: ')
     print(session)
+
+    if 'articlesToEmail' in session['attributes']:
+        articlesToEmail = session['attributes']['articlesToEmail']
+
+        msg = '<style type="text/css">td{padding:0 15px 0 15px;}</style>'
+
+        msg += "<html><head><h1 align=\"center\">Real News</h1></head>"
+        msg += "<body><table>"
+
+        articles = session['attributes']['articles']
+
+        for i in range(len(articles)):
+            if i in articlesToEmail:
+                msg += "<tr>"
+
+                msg += "<td>"
+                msg += "<a href=\"" + articles[i]['url'] + "\">"
+                msg += "<img height=\"200\" width=\"200\" src=\"" + articles[i]['urlToImage'] + "\" "
+                msg += "</a>"
+                msg += "</td>"
+
+                msg += "<td>"
+                msg += "<p>"
+                msg += "<a href=\"" + articles[i]['url'] + "\">"
+                msg += "<h2>" + articles[i]['title'] + "</h2> <br />"
+                msg += "</a>"
+                msg += articles[i]['description'] + "<br /><br />"
+                msg += articles[i]['source']['name'] + "<br />"
+                msg += "</p>"
+                msg += "</td>"
+
+                msg += "<tr>"
+
+
+        msg += "</table></body>"
+        msg += "</html>"
+
+        # need to get the user's email to send the mail
+
+        sg = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
+        from_email = Email("amitarunshankar@gmail.com")
+        to_email = Email("amitshankar@email.arizona.edu")
+        now = datetime.datetime.now()
+
+        subject = "Your Flash Briefing for " + str(now.month) + "/" + str(now.day)
+        content = Content("text/html", msg)
+        mail = Mail(from_email, subject, to_email, content)
+        sendGrid = sg.client.mail.send.post(request_body=mail.get())
+        print(sendGrid.status_code)
+        print(sendGrid.body)
+        print(sendGrid.headers)
+
 
     # if 'articlesToEmail' in session['attributes']:
     #     articles = session['attributes']['articles']

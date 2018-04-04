@@ -1,2 +1,5 @@
 newsapi-python-master/
 *.zip
+python_http_client-3.0.0.dist-info/
+test.py
+test/
