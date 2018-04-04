@@ -7,8 +7,6 @@ api = NewsApiClient(api_key=os.environ['API_KEY'])
 res = api.get_sources()
 sources = res['sources']
 
-print(sources)
-
 sourcesDict = {}
 
 for source in sources:
@@ -35,6 +33,7 @@ EXIT_SKILL_MESSAGE = "Thank you for using Real News! Goodbye!"
 # REPROMPT_SPEECH = "Which other source would you like to hear news from?"
 REPROMPT_HEADLINE = "Would you like to hear more about this?"
 NEXT_HEADLINE = "Would you like to hear the next headline?"
+EMAIL_HEADLINE = "Would you like me to email you a link to this article?"
 
 #This is the message a user will hear when they ask Alexa for help in your skill.
 HELP_MESSAGE = ("You can say something like, \"Alexa, ask Real to give me the headlines\" to get the headlines "
@@ -101,8 +100,11 @@ def on_intent(request, session):
                 if session['attributes']['dialogStatus'] == 'readTitle':
                     return read_headline(session)
                 elif session['attributes']['dialogStatus'] == 'readDescription':
+                    return ask_next_headline(session)
+                elif session['attributes']['dialogStatus'] == 'readEmail':
                     session['attributes']['headline_index'] += 1
                     return headlines(session)
+
                 # elif session['attributes']['dialogStatus'] == 'email':
                 #     return response_plain_text("Would you like me to email you a link to the article?", True)
             return headlines(session)
@@ -112,8 +114,10 @@ def on_intent(request, session):
         if 'dialogStatus' in session['attributes']:
             status = session['attributes']['dialogStatus']
 
-            if status == "readDescription":
-                return do_stop()
+            if status == "readEmail":
+                return do_stop(session)
+            elif status == "readDescription":
+                return headlines(session)
                 
             if 'headline_index' in session['attributes']:
                 session['attributes']['headline_index'] += 1
@@ -126,9 +130,9 @@ def on_intent(request, session):
     elif intent_name == "AMAZON.HelpIntent":
         return do_help()
     elif intent_name == "AMAZON.StopIntent":
-        return do_stop()
+        return do_stop(session)
     elif intent_name == "AMAZON.CancelIntent":
-        return do_stop()
+        return do_stop(session)
     else:
         print("invalid intent reply with help")
         return do_help()
@@ -150,10 +154,7 @@ def listSources(request):
 
 def headlines(session):
     if 'attributes' not in session:
-        print("before api request\n")
         res = api.get_top_headlines()
-        
-        print("after api request\n")
         
         articles = res['articles']
         session['attributes'] = {}
@@ -172,7 +173,7 @@ def headlines(session):
         # End if out of headlines, there's probably a better way to handle this
         # but this works for now
         if session['attributes']['headline_index'] == len(session['attributes']['articles']):
-            return do_stop()
+            return do_stop(session)
 
         articles = session['attributes']['articles']
     
@@ -193,12 +194,39 @@ def headlines(session):
     print(articles[0])
     print("\n")
 
+    articlesToEmail = []
+
+    if 'articlesToEmail' in session['attributes']:
+        articlesToEmail = session['attributes']['articlesToEmail']
+
     attributes = {
         "state": globals()['STATE'], 
         "headline_index": session['attributes']['headline_index'],
         "articles": session['attributes']['articles'],
-        "dialogStatus": "readTitle"
+        "dialogStatus": "readTitle",
+        'articlesToEmail': articlesToEmail
     }
+
+    return response(attributes, response_plain_text(msg, False))
+
+def ask_next_headline(session):
+    articlesToEmail = []
+
+    if 'articlesToEmail' in session['attributes']:
+        articlesToEmail = session['attributes']['articlesToEmail']
+
+
+    articlesToEmail.append(session['attributes']['headline_index'])
+
+    attributes = {
+        "state" : globals()['STATE'], 
+        "headline_index" : session['attributes']['headline_index'],
+        "articles" : session['attributes']['articles'],
+        "dialogStatus": "readEmail",
+        "articlesToEmail": articlesToEmail
+    }
+
+    msg = "Okay. Would you like to hear the next headline?"
 
     return response(attributes, response_plain_text(msg, False))
 
@@ -214,7 +242,7 @@ def read_headline(session):
         # End if out of headlines, there's probably a better way to handle this
         # but this works for now
         if session['attributes']['headline_index'] == len(session['attributes']['articles']):
-            return do_stop()
+            return do_stop(session)
 
         articles = session['attributes']['articles']
     
@@ -224,13 +252,22 @@ def read_headline(session):
     # for article in articles:
     msg += article['description']
     msg += " "
-    msg += NEXT_HEADLINE
+    # msg += NEXT_HEADLINE
+    msg += EMAIL_HEADLINE
+
+    articlesToEmail = []
+
+    if 'articlesToEmail' in session['attributes']:
+        articlesToEmail = session['attributes']['articlesToEmail']
+    else:
+        articlesToEmail.append(session['attributes']['headline_index'])
 
     attributes = {
         "state" : globals()['STATE'], 
         "headline_index" : session['attributes']['headline_index'],
         "articles" : session['attributes']['articles'],
-        "dialogStatus": "readDescription"
+        "dialogStatus": "readDescription",
+        "articlesToEmail": articlesToEmail
     }
 
     return response(attributes, response_plain_text(msg, False))
@@ -268,7 +305,7 @@ def sourcedNews(request, intent, session):
         # End if out of headlines, there's probably a better way to handle this
         # but this works for now
         if session['attributes']['headline_index'] == len(session['attributes']['articles']):
-            return do_stop()
+            return do_stop(session)
 
         articles = session['attributes']['articles']
     
@@ -289,17 +326,32 @@ def sourcedNews(request, intent, session):
     print(articles[0])
     print("\n")
 
+    articlesToEmail = []
+
+    if 'articlesToEmail' in session['attributes']:
+        articlesToEmail = session['attributes']['articlesToEmail']
+
     attributes = {
         "state": globals()['STATE'], 
         "headline_index": session['attributes']['headline_index'],
         "articles": session['attributes']['articles'],
-        "dialogStatus": "readTitle"
+        "dialogStatus": "readTitle",
+        "articlesToEmail": articlesToEmail
     }
 
     return response(attributes, response_plain_text(msg, False))
 
-def do_stop():
+def do_stop(session):
     """  stop the app """
+
+    """ check if there are any articles to be emailed """
+
+    print(session)
+
+    # if 'articlesToEmail' in session['attributes']:
+    #     articles = session['attributes']['articles']
+    #     for article in articlesToEmail:
+    #         print(article)
 
     attributes = {"state":globals()['STATE']}
     return response(attributes, response_plain_text(EXIT_SKILL_MESSAGE, True))
