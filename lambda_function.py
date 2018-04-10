@@ -9,16 +9,7 @@ import datetime
 
 api = NewsApiClient(api_key=os.environ['API_KEY'])
 
-res = api.get_sources()
-sources = res['sources']
-
-sourcesDict = {}
-
-for source in sources:
-    sourcesDict[source['name']] = source['id']
-
-# print(sourcesDict)
-
+sourcesDict = {'ABC News': {'id': 'abc-news', 'url': 'http://abcnews.go.com'}, 'Al Jazeera English': {'id': 'al-jazeera-english', 'url': 'http://www.aljazeera.com'}, 'Ars Technica': {'id': 'ars-technica', 'url': 'http://arstechnica.com'}, 'Associated Press': {'id': 'associated-press', 'url': 'https://apnews.com/'}, 'Axios': {'id': 'axios', 'url': 'https://www.axios.com'}, 'Bleacher Report': {'id': 'bleacher-report', 'url': 'http://www.bleacherreport.com'}, 'Bloomberg': {'id': 'bloomberg', 'url': 'http://www.bloomberg.com'}, 'Breitbart News': {'id': 'breitbart-news', 'url': 'http://www.breitbart.com'}, 'Business Insider': {'id': 'business-insider', 'url': 'http://www.businessinsider.com'}, 'Buzzfeed': {'id': 'buzzfeed', 'url': 'https://www.buzzfeed.com'}, 'CBS News': {'id': 'cbs-news', 'url': 'http://www.cbsnews.com'}, 'CNBC': {'id': 'cnbc', 'url': 'http://www.cnbc.com'}, 'CNN': {'id': 'cnn', 'url': 'http://us.cnn.com'}, 'CNN Spanish': {'id': 'cnn-es', 'url': 'http://cnnespanol.cnn.com/'}, 'Crypto Coins News': {'id': 'crypto-coins-news', 'url': 'https://www.ccn.com'}, 'Engadget': {'id': 'engadget', 'url': 'https://www.engadget.com'}, 'Entertainment Weekly': {'id': 'entertainment-weekly', 'url': 'http://www.ew.com'}, 'ESPN': {'id': 'espn', 'url': 'http://espn.go.com'}, 'ESPN Cric Info': {'id': 'espn-cric-info', 'url': 'http://www.espncricinfo.com/'}, 'Fortune': {'id': 'fortune', 'url': 'http://fortune.com'}, 'Fox News': {'id': 'fox-news', 'url': 'http://www.foxnews.com'}, 'Fox Sports': {'id': 'fox-sports', 'url': 'http://www.foxsports.com'}, 'Google News': {'id': 'google-news', 'url': 'https://news.google.com'}, 'Hacker News': {'id': 'hacker-news', 'url': 'https://news.ycombinator.com'}, 'IGN': {'id': 'ign', 'url': 'http://www.ign.com'}, 'Mashable': {'id': 'mashable', 'url': 'http://mashable.com'}, 'Medical News Today': {'id': 'medical-news-today', 'url': 'http://www.medicalnewstoday.com'}, 'MSNBC': {'id': 'msnbc', 'url': 'http://www.msnbc.com'}, 'MTV News': {'id': 'mtv-news', 'url': 'http://www.mtv.com/news'}, 'National Geographic': {'id': 'national-geographic', 'url': 'http://news.nationalgeographic.com'}, 'NBC News': {'id': 'nbc-news', 'url': 'http://www.nbcnews.com'}, 'New Scientist': {'id': 'new-scientist', 'url': 'https://www.newscientist.com/section/news'}, 'Newsweek': {'id': 'newsweek', 'url': 'http://www.newsweek.com'}, 'New York Magazine': {'id': 'new-york-magazine', 'url': 'http://nymag.com'}, 'Next Big Future': {'id': 'next-big-future', 'url': 'https://www.nextbigfuture.com'}, 'NFL News': {'id': 'nfl-news', 'url': 'http://www.nfl.com/news'}, 'NHL News': {'id': 'nhl-news', 'url': 'https://www.nhl.com/news'}, 'Politico': {'id': 'politico', 'url': 'https://www.politico.com'}, 'Polygon': {'id': 'polygon', 'url': 'http://www.polygon.com'}, 'Recode': {'id': 'recode', 'url': 'http://www.recode.net'}, 'Reddit /r/all': {'id': 'reddit-r-all', 'url': 'https://www.reddit.com/r/all'}, 'Reuters': {'id': 'reuters', 'url': 'http://www.reuters.com'}, 'TechCrunch': {'id': 'techcrunch', 'url': 'https://techcrunch.com'}, 'TechRadar': {'id': 'techradar', 'url': 'http://www.techradar.com'}, 'The Hill': {'id': 'the-hill', 'url': 'http://thehill.com'}, 'The Huffington Post': {'id': 'the-huffington-post', 'url': 'http://www.huffingtonpost.com'}, 'The New York Times': {'id': 'the-new-york-times', 'url': 'http://www.nytimes.com'}, 'The Next Web': {'id': 'the-next-web', 'url': 'http://thenextweb.com'}, 'The Verge': {'id': 'the-verge', 'url': 'http://www.theverge.com'}, 'The Wall Street Journal': {'id': 'the-wall-street-journal', 'url': 'http://www.wsj.com'}, 'The Washington Post': {'id': 'the-washington-post', 'url': 'https://www.washingtonpost.com'}, 'Time': {'id': 'time', 'url': 'http://time.com'}, 'USA Today': {'id': 'usa-today', 'url': 'http://www.usatoday.com/news'}, 'Vice News': {'id': 'vice-news', 'url': 'https://news.vice.com'}, 'Wired': {'id': 'wired', 'url': 'https://www.wired.com'}}
 
 MAX_QUESTION = 10
 
@@ -99,13 +90,10 @@ def on_intent(request, session):
         return sourcedNews(request, intent, session)
     elif intent_name == "Headlines":
         return headlines(session)
-    # elif intent_name == "ReadHeadline":
-    #     return read_headline(session)
-    # elif intent_name == "NextHeadline":
-    #     if 'headline_index' in session['attributes']:
-    #         session['attributes']['headline_index'] += 1
-    #     return headlines(session)
-    #     
+    elif intent_name == "Next":
+        return skip(session)
+    elif intent_name == "Previous":
+        return previous(session)
     elif intent_name == "AMAZON.YesIntent":
         if 'headline_index' in session['attributes']:
             if 'dialogStatus' in session['attributes']:
@@ -116,9 +104,6 @@ def on_intent(request, session):
                 elif session['attributes']['dialogStatus'] == 'readEmail':
                     session['attributes']['headline_index'] += 1
                     return headlines(session)
-
-                # elif session['attributes']['dialogStatus'] == 'email':
-                #     return response_plain_text("Would you like me to email you a link to the article?", True)
             return headlines(session)
 
 
@@ -163,14 +148,36 @@ def listSources(request):
     sourceNames = sourcesDict.keys()
 
     msg = "Here are the sources: "
-    msg += sourceNames[0]
 
     i = 1
     for source in sourceNames:
+        if i == 1:
+            msg += source
         msg += ", " + source
+        i += 1
 
     msg += "."
-    return dialog_response(msg, True)
+
+    print(msg)
+
+    return response({}, response_plain_text(msg, True))
+
+def skip(session):
+    if 'attributes' not in session:
+        return response({}, response_plain_text("", True))
+
+    session['attributes']['headline_index'] += 1
+    return headlines(session)
+
+def previous(session):
+    if 'attributes' not in session:
+        return response({}, response_plain_text("", True))
+
+    if session['attributes']['headline_index'] != 0:
+        session['attributes']['headline_index'] -= 1
+
+    return headlines(session)
+
 
 def headlines(session):
     if 'attributes' not in session:
@@ -192,7 +199,7 @@ def headlines(session):
     else:
         # End if out of headlines, there's probably a better way to handle this
         # but this works for now
-        if session['attributes']['headline_index'] == len(session['attributes']['articles']):
+        if session['attributes']['headline_index'] >= len(session['attributes']['articles']):
             return do_stop(session)
 
         articles = session['attributes']['articles']
@@ -247,6 +254,9 @@ def ask_next_headline(session):
         "dialogStatus": "readEmail",
         "articlesToEmail": articlesToEmail
     }
+
+    if session['attributes']['headline_index'] >= len(session['attributes']['articles']):
+        return do_stop()
 
     alexaMsg = "Okay. Would you like to hear the next headline?"
 
@@ -312,8 +322,15 @@ def sourcedNews(request, intent, session):
 
         print("formattedSource: " + formattedSource)
 
-        if formattedSource not in sourcesDict.values():
-            return response_plain_text("Sorry. I couldn't find that source.", True)
+        found = False
+
+        for source in sourcesDict.values():
+            if source['id'] == formattedSource:
+                found = True
+                break
+
+        if found == False:
+            return response({}, response_plain_text("Sorry. I couldn't find that source.", True))
 
         res = api.get_top_headlines(sources=formattedSource)
         print(res)
@@ -399,8 +416,8 @@ def do_stop(session):
         articles = session['attributes']['articles']
 
         msg += "<div align='center'>"
-        msg += "<a href='#'>"
-        msg += "<h1>Real News</h1>"
+        msg += "<a href='#' style='text-decoration: none; color: #000000;'>"
+        msg += "<h1>Real News</h1><hr />"
         msg += "</a>"
         msg += "</div>"
 
@@ -408,12 +425,20 @@ def do_stop(session):
             if i in articlesToEmail:
 
                 msg += "<div>"
-                msg += "<h2>" + articles[i]['title'] + "</h2>"
-                msg += "<p>" + articles[i]['description'] + "</p><br />"
                 msg += "<a href=\"" + articles[i]['url'] + "\">"
-                msg += articles[i]['source']['name']
+                msg += "<h2>" + articles[i]['title'] + "</h2>"
                 msg += "</a>"
+                msg += "<p>" + articles[i]['description'] + "</p><br />"
+                if articles[i]['source']['name'] in sourcesDict:
+                    msg += "<a href=\"" + sourcesDict[articles[i]['source']['name']]['url'] + "\">"
+                    msg += articles[i]['source']['name']
+                    msg += "</a>"
+                else:
+                    msg += articles[i]['source']['name']
                 msg += "</div>"
+
+                if i != len(articles) - 1:
+                    msg += "<hr />"
                 
                 # msg += "<tr>"
 

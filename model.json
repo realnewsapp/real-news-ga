@@ -74,6 +74,25 @@
                         "no thanks",
                         "no"
                     ]
+                },
+                {
+                    "name": "Next",
+                    "slots": [],
+                    "samples": [
+                        "skip",
+                        "next"
+                    ]
+                },
+                {
+                    "name": "Previous",
+                    "slots": [],
+                    "samples": [
+                        "wait what",
+                        "back",
+                        "rewind",
+                        "go back",
+                        "previous"
+                    ]
                 }
             ],
             "types": []
