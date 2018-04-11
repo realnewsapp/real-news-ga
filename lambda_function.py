@@ -40,8 +40,7 @@ EMAIL_HEADLINE = "Would you like me to email you a link to this article?"
 NO_DESCRIPTION = "This article does not have a summary. Would you still like me to email you a link to this article?"
 
 #This is the message a user will hear when they ask Alexa for help in your skill.
-HELP_MESSAGE = ("You can say something like, \"Alexa, ask Real to give me the headlines\" to get the headlines "
-                "or \"Alexa, ask Real News about topic\" to retrieve news by topic. "
+HELP_MESSAGE = ("You can say something like, \"Alexa, ask Real to give me the headlines\" to get the headlines. "
                 "You can also ask for news from a source by saying, \""
                 "Alexa, ask Real News to give me the news from source\". "
                 "What would you like to do?")
@@ -173,13 +172,15 @@ def skip(session):
     return headlines(session)
 
 def previous(session):
+    print(session)
     if 'attributes' not in session:
         return response({}, response_plain_text("", True))
 
-    if 'headline_index' not in session['attributes']:
+    if 'headline_index' in session['attributes']:
+        if session['attributes']['headline_index'] != 0:
+            session['attributes']['headline_index'] -= 1
+    else:
         session['attributes']['headline_index'] = 0
-    elif session['attributes']['headline_index'] != 0:
-        session['attributes']['headline_index'] -= 1
 
     return headlines(session)
 
@@ -288,7 +289,7 @@ def read_headline(session):
 
     # for article in articles:
     
-    if 'description' is not None:
+    if article['description'] is not None:
         msg += article['description']
         msg += " "
         # msg += NEXT_HEADLINE
@@ -415,11 +416,6 @@ def do_stop(session):
             request_json = request_data.json()
             user_email = request_json['email']
 
-        # msg = '<style type="text/css">td{padding:0 15px 0 15px;}</style>'
-
-        # msg += "<html><head><h1 align=\"center\">Real News</h1></head>"
-        # msg += "<body><table>"
-
         msg = HTML_MSG_1
 
         articles = session['attributes']['articles']
@@ -437,7 +433,10 @@ def do_stop(session):
                 msg += "<a href=\"" + articles[i]['url'] + "\">"
                 msg += "<h2>" + articles[i]['title'] + "</h2>"
                 msg += "</a>"
-                msg += "<p>" + articles[i]['description'] + "</p><br />"
+                msg += "<p>"
+                if  articles[i]['description'] is not None:
+                    msg += articles[i]['description']
+                msg += "</p><br />"
                 if articles[i]['source']['name'] in sourcesDict:
                     msg += "<a href=\"" + sourcesDict[articles[i]['source']['name']]['url'] + "\">"
                     msg += articles[i]['source']['name']
