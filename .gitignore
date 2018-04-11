@@ -4,3 +4,5 @@ python_http_client-3.0.0.dist-info/
 test.py
 test/
 *.pyc
+*.pyc
+test.py
