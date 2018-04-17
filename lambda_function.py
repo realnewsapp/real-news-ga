@@ -3,57 +3,10 @@ import os
 import requests
 import sendgrid
 from sendgrid.helpers.mail import *
-
+from constants import *
 
 
 api = NewsApiClient(api_key=os.environ['API_KEY'])
-
-sourcesDict = {'ABC News': {'id': 'abc-news', 'url': 'http://abcnews.go.com'}, 'Al Jazeera English': {'id': 'al-jazeera-english', 'url': 'http://www.aljazeera.com'}, 'Ars Technica': {'id': 'ars-technica', 'url': 'http://arstechnica.com'}, 'Associated Press': {'id': 'associated-press', 'url': 'https://apnews.com/'}, 'Axios': {'id': 'axios', 'url': 'https://www.axios.com'}, 'Bleacher Report': {'id': 'bleacher-report', 'url': 'http://www.bleacherreport.com'}, 'Bloomberg': {'id': 'bloomberg', 'url': 'http://www.bloomberg.com'}, 'Breitbart News': {'id': 'breitbart-news', 'url': 'http://www.breitbart.com'}, 'Business Insider': {'id': 'business-insider', 'url': 'http://www.businessinsider.com'}, 'Buzzfeed': {'id': 'buzzfeed', 'url': 'https://www.buzzfeed.com'}, 'CBS News': {'id': 'cbs-news', 'url': 'http://www.cbsnews.com'}, 'CNBC': {'id': 'cnbc', 'url': 'http://www.cnbc.com'}, 'CNN': {'id': 'cnn', 'url': 'http://us.cnn.com'}, 'CNN Spanish': {'id': 'cnn-es', 'url': 'http://cnnespanol.cnn.com/'}, 'Crypto Coins News': {'id': 'crypto-coins-news', 'url': 'https://www.ccn.com'}, 'Engadget': {'id': 'engadget', 'url': 'https://www.engadget.com'}, 'Entertainment Weekly': {'id': 'entertainment-weekly', 'url': 'http://www.ew.com'}, 'ESPN': {'id': 'espn', 'url': 'http://espn.go.com'}, 'ESPN Cric Info': {'id': 'espn-cric-info', 'url': 'http://www.espncricinfo.com/'}, 'Fortune': {'id': 'fortune', 'url': 'http://fortune.com'}, 'Fox News': {'id': 'fox-news', 'url': 'http://www.foxnews.com'}, 'Fox Sports': {'id': 'fox-sports', 'url': 'http://www.foxsports.com'}, 'Google News': {'id': 'google-news', 'url': 'https://news.google.com'}, 'Hacker News': {'id': 'hacker-news', 'url': 'https://news.ycombinator.com'}, 'IGN': {'id': 'ign', 'url': 'http://www.ign.com'}, 'Mashable': {'id': 'mashable', 'url': 'http://mashable.com'}, 'Medical News Today': {'id': 'medical-news-today', 'url': 'http://www.medicalnewstoday.com'}, 'MSNBC': {'id': 'msnbc', 'url': 'http://www.msnbc.com'}, 'MTV News': {'id': 'mtv-news', 'url': 'http://www.mtv.com/news'}, 'National Geographic': {'id': 'national-geographic', 'url': 'http://news.nationalgeographic.com'}, 'NBC News': {'id': 'nbc-news', 'url': 'http://www.nbcnews.com'}, 'New Scientist': {'id': 'new-scientist', 'url': 'https://www.newscientist.com/section/news'}, 'Newsweek': {'id': 'newsweek', 'url': 'http://www.newsweek.com'}, 'New York Magazine': {'id': 'new-york-magazine', 'url': 'http://nymag.com'}, 'Next Big Future': {'id': 'next-big-future', 'url': 'https://www.nextbigfuture.com'}, 'NFL News': {'id': 'nfl-news', 'url': 'http://www.nfl.com/news'}, 'NHL News': {'id': 'nhl-news', 'url': 'https://www.nhl.com/news'}, 'Politico': {'id': 'politico', 'url': 'https://www.politico.com'}, 'Polygon': {'id': 'polygon', 'url': 'http://www.polygon.com'}, 'Recode': {'id': 'recode', 'url': 'http://www.recode.net'}, 'Reddit /r/all': {'id': 'reddit-r-all', 'url': 'https://www.reddit.com/r/all'}, 'Reuters': {'id': 'reuters', 'url': 'http://www.reuters.com'}, 'TechCrunch': {'id': 'techcrunch', 'url': 'https://techcrunch.com'}, 'TechRadar': {'id': 'techradar', 'url': 'http://www.techradar.com'}, 'The Hill': {'id': 'the-hill', 'url': 'http://thehill.com'}, 'The Huffington Post': {'id': 'the-huffington-post', 'url': 'http://www.huffingtonpost.com'}, 'The New York Times': {'id': 'the-new-york-times', 'url': 'http://www.nytimes.com'}, 'The Next Web': {'id': 'the-next-web', 'url': 'http://thenextweb.com'}, 'The Verge': {'id': 'the-verge', 'url': 'http://www.theverge.com'}, 'The Wall Street Journal': {'id': 'the-wall-street-journal', 'url': 'http://www.wsj.com'}, 'The Washington Post': {'id': 'the-washington-post', 'url': 'https://www.washingtonpost.com'}, 'Time': {'id': 'time', 'url': 'http://time.com'}, 'USA Today': {'id': 'usa-today', 'url': 'http://www.usatoday.com/news'}, 'Vice News': {'id': 'vice-news', 'url': 'https://news.vice.com'}, 'Wired': {'id': 'wired', 'url': 'https://www.wired.com'}}
-
-MAX_QUESTION = 10
-
-#This is the welcome message for when a user starts the skill without a specific intent.
-WELCOME_MESSAGE = ('Welcome to Real News!  You can ask me for news from various sources'
-                   ' such as CNN or The Washington Post by saying, "give me the headlines from the washington post."'
-                   ' You can also ask me for the headlines across sources by saying, "give me the headlines."'
-                   ' You can get a list of sources by saying, "give me the list of sources."'
-                   ' What would you like to do?')
-
-HTML_MSG_1 = '<!doctype html> <html> <head> <meta name="viewport" content="width=device-width"> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <title>Simple Transactional Email</title> <style> /* ------------------------------------- INLINED WITH htmlemail.io/inline ------------------------------------- */ /* ------------------------------------- RESPONSIVE AND MOBILE FRIENDLY STYLES ------------------------------------- */ @media only screen and (max-width: 620px) { table[class=body] h1 { font-size: 28px !important; margin-bottom: 10px !important; } table[class=body] p, table[class=body] ul, table[class=body] ol, table[class=body] td, table[class=body] span, table[class=body] a { font-size: 16px !important; } table[class=body] .wrapper, table[class=body] .article { padding: 10px !important; } table[class=body] .content { padding: 0 !important; } table[class=body] .container { padding: 0 !important; width: 100% !important; } table[class=body] .main { border-left-width: 0 !important; border-radius: 0 !important; border-right-width: 0 !important; } table[class=body] .btn table { width: 100% !important; } table[class=body] .btn a { width: 100% !important; } table[class=body] .img-responsive { height: auto !important; max-width: 100% !important; width: auto !important; } } /* ------------------------------------- PRESERVE THESE STYLES IN THE HEAD ------------------------------------- */ @media all { .ExternalClass { width: 100%; } .ExternalClass, .ExternalClass p, .ExternalClass span, .ExternalClass font, .ExternalClass td, .ExternalClass div { line-height: 100%; } .apple-link a { color: inherit !important; font-family: inherit !important; font-size: inherit !important; font-weight: inherit !important; line-height: inherit !important; text-decoration: none !important; } .btn-primary table td:hover { background-color: #34495e !important; } .btn-primary a:hover { background-color: #34495e !important; border-color: #34495e !important; } } </style> </head> <body class="" style="background-color: #f6f6f6; font-family: sans-serif; -webkit-font-smoothing: antialiased; font-size: 14px; line-height: 1.4; margin: 0; padding: 0; -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%;"> <table border="0" cellpadding="0" cellspacing="0" class="body" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; background-color: #f6f6f6;"> <tr> <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;">&nbsp;</td> <td class="container" style="font-family: sans-serif; font-size: 14px; vertical-align: top; display: block; Margin: 0 auto; max-width: 580px; padding: 10px; width: 580px;"> <div class="content" style="box-sizing: border-box; display: block; Margin: 0 auto; max-width: 580px; padding: 10px;"> <!-- START CENTERED WHITE CONTAINER --> <span class="preheader" style="color: transparent; display: none; height: 0; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; mso-hide: all; visibility: hidden; width: 0;">Here is your requested news briefing from the Real News skill.</span> <table class="main" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; background: #ffffff; border-radius: 3px;"> <!-- START MAIN CONTENT AREA --> <tr> <td class="wrapper" style="font-family: sans-serif; font-size: 14px; vertical-align: top; box-sizing: border-box; padding: 20px;"> <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%;"> <tr> <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;"> '
-HTML_MSG_2 = '</td> </tr> </table> </td> </tr> <!-- END MAIN CONTENT AREA --> </table> <!-- START FOOTER --> <div class="footer" style="clear: both; Margin-top: 10px; text-align: center; width: 100%;"> <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%;"> <tr> <td class="content-block" style="font-family: sans-serif; vertical-align: top; padding-bottom: 10px; padding-top: 10px; font-size: 12px; color: #999999; text-align: center;"> <span class="apple-link" style="color: #999999; font-size: 12px; text-align: center;">Real News</span> <br> Don\'t like these emails? <a href="https://realnewsapp.github.io/unlink.html" style="text-decoration: underline; color: #999999; font-size: 12px; text-align: center;">Unlink your Amazon account</a>. </td> </tr> <tr> <td class="content-block powered-by" style="font-family: sans-serif; vertical-align: top; padding-bottom: 10px; padding-top: 10px; font-size: 12px; color: #999999; text-align: center;"> Powered by <a href="https://newsapi.org" style="color: #999999; font-size: 12px; text-align: center; text-decoration: none;">NewsAPI.org</a>. </td> </tr> </table> </div> <!-- END FOOTER --> <!-- END CENTERED WHITE CONTAINER --> </div> </td> <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;">&nbsp;</td> </tr> </table> </body> </html>'
-
-
-
-#This is the message a user will hear when they start a quiz.
-SKILLTITLE = "Real News"
-
-#This is the message a user will hear when they try to cancel or stop the skill"
-#or when they finish a quiz.
-EXIT_SKILL_MESSAGE = "Thank you for using Real News! Goodbye!"
-
-#This is the message a user will hear after they ask (and hear) about a specific data element.
-# REPROMPT_SPEECH = "Which other source would you like to hear news from?"
-REPROMPT_HEADLINE = "Would you like to hear more about this?"
-NEXT_HEADLINE = "Would you like to hear the next headline?"
-EMAIL_HEADLINE = "Would you like me to email you a link to this article?"
-NO_DESCRIPTION = "This article does not have a summary. Would you still like me to email you a link to this article?"
-
-#This is the message a user will hear when they ask Alexa for help in your skill.
-HELP_MESSAGE = ("You can say something like, \"Alexa, ask Real to give me the headlines\" to get the headlines. "
-                "You can also ask for news from a source by saying, \""
-                "Alexa, ask Real News to give me the news from source\". "
-                "What would you like to do?")
-
-LOGIN_MESSAGE = "You need to login with Amazon before we can send you an email. Check the Alexa app for more details."
-
-#If you don't want to use cards in your skill, set the USE_CARDS_FLAG to false.
-#If you set it to true, you will need an image for each item in your data.
-USE_CARDS_FLAG = False
-
-STATE_START = "Start"
-
-STATE = STATE_START
-
 
 # --------------- entry point -----------------
 
@@ -421,7 +374,9 @@ def do_stop(session):
 
         msg += "<div align='center'>"
         msg += "<a href='#' style='text-decoration: none; color: #000000;'>"
-        msg += "<h1>Real News</h1><hr />"
+        msg += "<br><img src='"
+        msg += EMAIL_HEADER_IMG
+        msg += "' style='max-width: 50%; height: auto;' /><br><br><hr />"
         msg += "</a>"
         msg += "</div>"
 
