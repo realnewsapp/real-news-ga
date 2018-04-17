@@ -374,9 +374,9 @@ def do_stop(session):
 
         msg += "<div align='center'>"
         msg += "<a href='#' style='text-decoration: none; color: #000000;'>"
-        msg += "<br><img src='"
-        msg += EMAIL_HEADER_IMG
-        msg += "' style='max-width: 50%; height: auto;' /><br><br><hr />"
+        msg += "<br>"
+        msg += EMAIL_HEADER_SVG
+        msg += "<br><br><hr />"
         msg += "</a>"
         msg += "</div>"
 
