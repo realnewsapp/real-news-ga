@@ -107,12 +107,12 @@ def listSources(request):
     for source in sourceNames:
         if i == 1:
             msg += source
+            i += 1
+            continue
         msg += ", " + source
         i += 1
 
     msg += "."
-
-    print(msg)
 
     return response({}, response_plain_text(msg, True))
 
