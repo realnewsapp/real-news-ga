@@ -375,7 +375,7 @@ def do_stop(session):
         msg += "<div align='center'>"
         msg += "<a href='#' style='text-decoration: none; color: #000000;'>"
         msg += "<br>"
-        msg += EMAIL_HEADER_SVG
+        msg += "<img src='https://realnewsapp.github.io/img/logo.png' style='max-width: 50%; height: auto;' />"
         msg += "<br><br><hr />"
         msg += "</a>"
         msg += "</div>"
