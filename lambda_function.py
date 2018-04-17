@@ -3,8 +3,8 @@ import os
 import requests
 import sendgrid
 from sendgrid.helpers.mail import *
-import datetime
 from constants import *
+
 
 api = NewsApiClient(api_key=os.environ['API_KEY'])
 
@@ -433,9 +433,8 @@ def do_stop(session):
         sg = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
         from_email = Email(os.environ.get('EMAIL_SENDER_ADDRESS'))
         to_email = Email(user_email)
-        now = datetime.datetime.now()
 
-        subject = "Your Flash Briefing for " + str(now.month) + "/" + str(now.day)
+        subject = "Your Real News Digest"
         content = Content("text/html", msg)
         mail = Mail(from_email, subject, to_email, content)
         sendGrid = sg.client.mail.send.post(request_body=mail.get())
