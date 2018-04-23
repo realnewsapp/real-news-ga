@@ -37,6 +37,9 @@ HELP_MESSAGE = ("You can say something like, \"Alexa, ask Real to give me the he
 
 LOGIN_MESSAGE = "You need to login with Amazon before we can send you an email. Check the Alexa app for more details."
 
+
+OUT_OF_REQUESTS = "Sorry! I can't make any more requests to the server right now. Please try again later."
+
 #If you don't want to use cards in your skill, set the USE_CARDS_FLAG to false.
 #If you set it to true, you will need an image for each item in your data.
 USE_CARDS_FLAG = False
