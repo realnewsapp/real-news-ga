@@ -29,8 +29,6 @@ def on_intent(request, session):
     intent = request['intent']
     intent_name = request['intent']['name']
 
-    print("on_intent " + intent_name)
-    # get_state(session)
 
     if 'dialogState' in request:
         #delegate to Alexa until dialog sequence is complete
@@ -65,8 +63,6 @@ def on_intent(request, session):
         if 'dialogStatus' in session['attributes']:
             status = session['attributes']['dialogStatus']
 
-            print(session)
-
             if status == "readEmail":
                 return do_stop(session)
             elif status == "readTitle":
@@ -82,8 +78,7 @@ def on_intent(request, session):
                 
         else:
             print("headline_index didn't exist")
-            # elif session['attributes']['dialogStatus'] == 'email':
-            #     return response_plain_text("Would you like me to email you a link to the article?", True)
+
         return headlines(session)
 
     elif intent_name == "AMAZON.HelpIntent":
@@ -124,7 +119,6 @@ def skip(session):
     return headlines(session)
 
 def previous(session):
-    print(session)
     if 'attributes' not in session:
         return response({}, response_plain_text("", True))
 
@@ -140,16 +134,22 @@ def previous(session):
 def headlines(session):
     if 'attributes' not in session:
         res = api.get_top_headlines()
+
+        if(res['status'] == "error"):
+            if(res['code'] == 'apiKeyExhausted' or res['code'] == 'rateLimited'):
+                return response({}, response_plain_text(OUT_OF_REQUESTS, True))
         
         articles = res['articles']
         session['attributes'] = {}
         session['attributes']['headline_index'] = 0
         session['attributes']['articles'] = articles
     elif 'articles' not in session['attributes']:
-        print("before api request\n")
+
         res = api.get_top_headlines()
-        
-        print("after api request\n")
+
+        if(res['status'] == "error"):
+            if(res['code'] == 'apiKeyExhausted' or res['code'] == 'rateLimited'):
+                return response({}, response_plain_text(OUT_OF_REQUESTS, True))
         
         articles = res['articles']
         session['attributes']['headline_index'] = 0
@@ -162,9 +162,6 @@ def headlines(session):
 
         articles = session['attributes']['articles']
     
-    print(articles)
-    print("\n")
-
     msg = ""
     article = articles[session['attributes']['headline_index']]
 
@@ -174,10 +171,6 @@ def headlines(session):
     msg += ". "
     msg += REPROMPT_HEADLINE
         
-    print(msg + "\n\n")
-
-    print(articles[0])
-    print("\n")
 
     articlesToEmail = []
 
@@ -199,8 +192,6 @@ def ask_next_headline(session):
 
     if 'articlesToEmail' in session['attributes']:
         articlesToEmail = session['attributes']['articlesToEmail']
-
-        print(articlesToEmail)
 
 
     articlesToEmail.append(session['attributes']['headline_index'])
@@ -224,6 +215,11 @@ def read_headline(session):
     if 'articles' not in session['attributes']:
 
         res = api.get_top_headlines()
+
+        if(res['status'] == "error"):
+            if(res['code'] == 'apiKeyExhausted' or res['code'] == 'rateLimited'):
+                return response({}, response_plain_text(OUT_OF_REQUESTS, True))
+
         articles = res['articles']
         session['attributes']['headline_index'] = 0
         session['attributes']['articles'] = articles
@@ -282,7 +278,6 @@ def sourcedNews(request, intent, session):
             else:
                 formattedSource += words[i].lower() + "-"
 
-        print("formattedSource: " + formattedSource)
 
         found = False
 
@@ -295,7 +290,13 @@ def sourcedNews(request, intent, session):
             return response({}, response_plain_text("Sorry. I couldn't find that source.", True))
 
         res = api.get_top_headlines(sources=formattedSource)
-        print(res)
+
+
+        if(res['status'] == "error"):
+            if(res['code'] == 'apiKeyExhausted' or res['code'] == 'rateLimited'):
+                return response({}, response_plain_text(OUT_OF_REQUESTS, True))
+
+
         articles = res['articles']
 
         session['attributes'] = {}
@@ -310,9 +311,6 @@ def sourcedNews(request, intent, session):
 
         articles = session['attributes']['articles']
     
-    print(articles)
-    print("\n")
-
     msg = ""
     article = articles[session['attributes']['headline_index']]
 
@@ -322,11 +320,6 @@ def sourcedNews(request, intent, session):
     msg += ". "
     msg += REPROMPT_HEADLINE
         
-    print(msg + "\n\n")
-
-    print(articles[0])
-    print("\n")
-
     articlesToEmail = []
 
     if 'articlesToEmail' in session['attributes']:
@@ -346,9 +339,6 @@ def do_stop(session):
     """  stop the app """
 
     """ check if there are any articles to be emailed """
-
-    print('session in do_stop: ')
-    print(session)
 
     user_email = ""
 
@@ -401,35 +391,10 @@ def do_stop(session):
 
                 if i != len(articles) - 1:
                     msg += "<hr />"
-                
-                # msg += "<tr>"
-
-                # msg += "<td>"
-                # msg += "<a href=\"" + articles[i]['url'] + "\">"
-                # msg += "<img height=\"200\" width=\"200\" src=\"" + articles[i]['urlToImage'] + "\" "
-                # msg += "</a>"
-                # msg += "</td>"
-
-                # msg += "<td>"
-                # msg += "<p>"
-                # msg += "<a href=\"" + articles[i]['url'] + "\">"
-                # msg += "<h2>" + articles[i]['title'] + "</h2> <br />"
-                # msg += "</a>"
-                # msg += articles[i]['description'] + "<br /><br />"
-                # msg += articles[i]['source']['name'] + "<br />"
-                # msg += "</p>"
-                # msg += "</td>"
-
-                # msg += "<tr>"
-
-
-        # msg += "</table></body>"
-        # msg += "</html>"
 
         msg += HTML_MSG_2
 
-        # need to get the user's email to send the mail
-
+        """ email logic """
         sg = sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
         from_email = Email(os.environ.get('EMAIL_SENDER_ADDRESS'))
         to_email = Email(user_email)
@@ -438,15 +403,6 @@ def do_stop(session):
         content = Content("text/html", msg)
         mail = Mail(from_email, subject, to_email, content)
         sendGrid = sg.client.mail.send.post(request_body=mail.get())
-        print(sendGrid.status_code)
-        print(sendGrid.body)
-        print(sendGrid.headers)
-
-
-    # if 'articlesToEmail' in session['attributes']:
-    #     articles = session['attributes']['articles']
-    #     for article in articlesToEmail:
-    #         print(article)
 
     attributes = {"state":globals()['STATE']}
     return response(attributes, response_plain_text(EXIT_SKILL_MESSAGE, True))
@@ -467,7 +423,6 @@ def on_launch():
 def on_session_ended(request):
     """ called on session end  """
     
-    print(request)
 
     if request['reason']:
         end_reason = request['reason']
@@ -479,7 +434,6 @@ def get_state(session):
     """ get and set the current state  """
 
     global STATE
-    print(session)
     if 'state' in session['attributes']:
         STATE = session['attributes']['state']
     else:
