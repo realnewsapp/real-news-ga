@@ -30,9 +30,9 @@ EMAIL_HEADLINE = "Would you like me to email you a link to this article?"
 NO_DESCRIPTION = "This article does not have a summary. Would you still like me to email you a link to this article?"
 
 #This is the message a user will hear when they ask Alexa for help in your skill.
-HELP_MESSAGE = ("You can say something like, \"Alexa, ask Real to give me the headlines\" to get the headlines. "
+HELP_MESSAGE = ("You can say something like, \"Give me the headlines\" to get the headlines. "
                 "You can also ask for news from a source by saying, \""
-                "Alexa, ask Real News to give me the news from source\". "
+                "Give me the news from ESPN\". "
                 "What would you like to do?")
 
 LOGIN_MESSAGE = "You need to login with Amazon before we can send you an email. Check the Alexa app for more details."
