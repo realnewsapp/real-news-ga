@@ -8,12 +8,15 @@ from constants import *
 
 api = NewsApiClient(api_key=os.environ['API_KEY'])
 
+# 0 for Alexa, 1 for Google Assisstant
+ASSISTANT_TYPE = 0
+
 # --------------- entry point -----------------
 
 def lambda_handler(event, context):
     """ App entry point  """
     
-    if event['request']['type'] == "LaunchRequest":
+    if event['queryResult']['action'] == "input.welcome":
         return on_launch()
     elif event['request']['type'] == "IntentRequest":
         return on_intent(event['request'], event['session'])
@@ -444,7 +447,23 @@ def get_welcome_message():
     """ return a welcome message """
 
     attributes = {"state":globals()['STATE']}
-    return response(attributes, response_plain_text(WELCOME_MESSAGE, False))
+    return response_plain_text_ga(WELCOME_MESSAGE, False)
+
+def response_plain_text_ga(output, endsession):
+    """ create a simple json plain text response  """
+
+    return {
+        'fulfillmentText': output
+    }
+
+def response_ga(attributes, speech_response):
+    """ create a simple json response """
+
+    return {
+        'version': '1.0',
+        'sessionAttributes': attributes,
+        'response': speech_response
+    }
 
 def response_plain_text(output, endsession):
     """ create a simple json plain text response  """
