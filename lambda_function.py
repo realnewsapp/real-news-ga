@@ -8,88 +8,85 @@ from constants import *
 
 api = NewsApiClient(api_key=os.environ['API_KEY'])
 
-# 0 for Alexa, 1 for Google Assisstant
-ASSISTANT_TYPE = 0
-
 # --------------- entry point -----------------
 
 def lambda_handler(event, context):
     """ App entry point  """
-    
+
+    print(event)
+
     if event['queryResult']['action'] == "input.welcome":
         return on_launch()
-    elif event['request']['type'] == "IntentRequest":
-        return on_intent(event['request'], event['session'])
-    elif event['request']['type'] == "SessionEndedRequest":
-        return on_session_ended(event['request'])
+    else:
+        return on_intent(event)
+
+"""     elif event['request']['type'] == "SessionEndedRequest":
+        return on_session_ended(event['request']) """
 
 
 # --------------- response handlers -----------------
 
-def on_intent(request, session):
+def on_intent(request):
     """ Called on receipt of an Intent  """
 
-    intent = request['intent']
-    intent_name = request['intent']['name']
+    intent = request['queryResult']['intent']
+    intent_name = intent['displayName']
 
-
-    if 'dialogState' in request:
-        #delegate to Alexa until dialog sequence is complete
-        if request['dialogState'] == "STARTED" or request['dialogState'] == "IN_PROGRESS":
-            return dialog_response("", False)
+    if "outputContexts" not in request:
+        request["outputContexts"] = []
 
     # process the intents
     if intent_name == "ListSources":
         return listSources(request)
     elif intent_name == "SourcedNews":
-        return sourcedNews(request, intent, session)
+        return sourcedNews(request, request, request)
     elif intent_name == "Headlines":
-        return headlines(session)
+        return headlines(request, 0, None)
     elif intent_name == "Next":
-        return skip(session)
+        return skip(request)
     elif intent_name == "Previous":
-        return previous(session)
-    elif intent_name == "AMAZON.YesIntent":
-        if 'headline_index' in session['attributes']:
-            if 'dialogStatus' in session['attributes']:
-                if session['attributes']['dialogStatus'] == 'readTitle':
-                    return read_headline(session)
-                elif session['attributes']['dialogStatus'] == 'readDescription':
-                    return ask_next_headline(session)
-                elif session['attributes']['dialogStatus'] == 'readEmail':
-                    session['attributes']['headline_index'] += 1
-                    return headlines(session)
-            return headlines(session)
+        return previous(request)
+    # elif intent_name == "AMAZON.YesIntent":
+    #     if 'headline_index' in session['attributes']:
+    #         if 'dialogStatus' in session['attributes']:
+    #             if session['attributes']['dialogStatus'] == 'readTitle':
+    #                 return read_headline(session)
+    #             elif session['attributes']['dialogStatus'] == 'readDescription':
+    #                 return ask_next_headline(session)
+    #             elif session['attributes']['dialogStatus'] == 'readEmail':
+    #                 session['attributes']['headline_index'] += 1
+    #                 return headlines(session)
+    #         return headlines(session)
 
 
-    elif intent_name == "AMAZON.NoIntent":
-        if 'dialogStatus' in session['attributes']:
-            status = session['attributes']['dialogStatus']
+    # elif intent_name == "AMAZON.NoIntent":
+    #     if 'dialogStatus' in session['attributes']:
+    #         status = session['attributes']['dialogStatus']
 
-            if status == "readEmail":
-                return do_stop(session)
-            elif status == "readTitle":
-                if 'headline_index' in session['attributes']:
-                    session['attributes']['headline_index'] += 1
+    #         if status == "readEmail":
+    #             return do_stop(session)
+    #         elif status == "readTitle":
+    #             if 'headline_index' in session['attributes']:
+    #                 session['attributes']['headline_index'] += 1
                 
-                return headlines(session)
-            elif status == "readDescription":
-                if 'headline_index' in session['attributes']:
-                    session['attributes']['headline_index'] += 1
+    #             return headlines(session)
+    #         elif status == "readDescription":
+    #             if 'headline_index' in session['attributes']:
+    #                 session['attributes']['headline_index'] += 1
                 
-                return headlines(session)
+    #             return headlines(session)
                 
-        else:
-            print("headline_index didn't exist")
+    #     else:
+    #         print("headline_index didn't exist")
 
-        return headlines(session)
+    #     return headlines(session)
 
     elif intent_name == "AMAZON.HelpIntent":
         return do_help()
     elif intent_name == "AMAZON.StopIntent":
-        return do_stop(session)
+        return do_stop(request)
     elif intent_name == "AMAZON.CancelIntent":
-        return do_stop(session)
+        return do_stop(request)
     else:
         print("invalid intent reply with help")
         return do_help()
@@ -115,27 +112,32 @@ def listSources(request):
     return response({}, response_plain_text(msg, True))
 
 def skip(session):
-    if 'attributes' not in session:
-        return response({}, response_plain_text("", True))
+    headline_index = 0
+    articles = None
+    for i in session['queryResult']['outputContexts']:
+        if 'headline_index' in i['name']:
+            headline_index = i['parameters']['index']
+        elif 'articles' in i['name']:
+            articles = i['parameters']['articles']
 
-    session['attributes']['headline_index'] += 1
-    return headlines(session)
+    headline_index += 1
+    return headlines(session, headline_index, articles)
 
 def previous(session):
-    if 'attributes' not in session:
-        return response({}, response_plain_text("", True))
+    headline_index = 0
+    articles = None
+    for i in session['queryResult']['outputContexts']:
+        if 'headline_index' in i['name']:
+            headline_index = i['parameters']['index']
+        elif 'articles' in i['name']:
+            articles = i['parameters']['articles']
+    
+    headline_index -= 1
+    return headlines(session, headline_index, articles)
 
-    if 'headline_index' in session['attributes']:
-        if session['attributes']['headline_index'] != 0:
-            session['attributes']['headline_index'] -= 1
-    else:
-        session['attributes']['headline_index'] = 0
 
-    return headlines(session)
-
-
-def headlines(session):
-    if 'attributes' not in session:
+def headlines(session, headline_index, articles):
+    if articles is None:
         res = api.get_top_headlines()
 
         if(res['status'] == "error"):
@@ -143,30 +145,15 @@ def headlines(session):
                 return response({}, response_plain_text(OUT_OF_REQUESTS, True))
         
         articles = res['articles']
-        session['attributes'] = {}
-        session['attributes']['headline_index'] = 0
-        session['attributes']['articles'] = articles
-    elif 'articles' not in session['attributes']:
-
-        res = api.get_top_headlines()
-
-        if(res['status'] == "error"):
-            if(res['code'] == 'apiKeyExhausted' or res['code'] == 'rateLimited'):
-                return response({}, response_plain_text(OUT_OF_REQUESTS, True))
-        
-        articles = res['articles']
-        session['attributes']['headline_index'] = 0
-        session['attributes']['articles'] = articles
     else:
         # End if out of headlines, there's probably a better way to handle this
         # but this works for now
-        if session['attributes']['headline_index'] >= len(session['attributes']['articles']):
+        if headline_index >= len(articles):
             return do_stop(session)
 
-        articles = session['attributes']['articles']
-    
     msg = ""
-    article = articles[session['attributes']['headline_index']]
+    headline_index = int(headline_index)
+    article = articles[headline_index]
 
     # for article in articles:
     msg += "From " + article['source']['name'] + ": "
@@ -177,18 +164,47 @@ def headlines(session):
 
     articlesToEmail = []
 
-    if 'articlesToEmail' in session['attributes']:
-        articlesToEmail = session['attributes']['articlesToEmail']
+    # if 'articlesToEmail' in session['attributes']:
+    #     articlesToEmail = session['attributes']['articlesToEmail']
 
-    attributes = {
-        "state": globals()['STATE'], 
-        "headline_index": session['attributes']['headline_index'],
-        "articles": session['attributes']['articles'],
-        "dialogStatus": "readTitle",
-        'articlesToEmail': articlesToEmail
-    }
+    for i in session['queryResult']['outputContexts']:
+        if 'headline_index' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['index'] = headline_index
+        elif 'articles' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['articles'] = articles
 
-    return response(attributes, response_plain_text(msg, False))
+    # attributes = [
+    #     # "state": globals()['STATE'], 
+    #     {
+    #         'name': 'articles',
+    #         'lifespanCount': 10,
+    #         'parameters': {
+    #             'articles': articles
+    #         }
+    #     },
+    #     {
+    #         'name': 'headline_index',
+    #         'lifespanCount': 10,
+    #         'parameters': {
+    #             'index': headline_index
+    #         }
+    #     },
+    #     {
+    #         'name': 'stacktrace',
+    #         'lifespanCount': 10,
+    #         'parameters': {
+    #             'none': 'none'
+    #         }
+    #     }
+    #     # "headline_index": session['queryResult']['outputContexts'][0]['headline_index'],
+    #     # "articles": "session['queryResult']['outputContexts'][0]['articles']"
+    #     # "dialogStatus": "readTitle",
+    #     # 'articlesToEmail': articlesToEmail
+    # ]
+
+    return response_plain_context_ga(msg, session['queryResult']['outputContexts'], True)
 
 def ask_next_headline(session):
     articlesToEmail = []
@@ -202,13 +218,13 @@ def ask_next_headline(session):
     attributes = {
         "state" : globals()['STATE'], 
         "headline_index" : session['attributes']['headline_index'],
-        "articles" : session['attributes']['articles'],
-        "dialogStatus": "readEmail",
-        "articlesToEmail": articlesToEmail
+        "articles" : session['queryResult']['outputContexts'][0]['articles'],
+        # "dialogStatus": "readEmail",
+        # "articlesToEmail": articlesToEmail
     }
 
-    if session['attributes']['headline_index'] >= len(session['attributes']['articles']):
-        return do_stop()
+    # if session['attributes']['headline_index'] >= len(session['attributes']['articles']):
+    #     return do_stop()
 
     alexaMsg = "Okay. Would you like to hear the next headline?"
 
@@ -263,7 +279,7 @@ def read_headline(session):
         "articlesToEmail": articlesToEmail
     }
 
-    return response(attributes, response_plain_text(msg, False))
+    return response_plain_context_ga(msg, attributes, False)
 
 def sourcedNews(request, intent, session):
 
@@ -446,14 +462,47 @@ def get_state(session):
 def get_welcome_message():
     """ return a welcome message """
 
-    attributes = {"state":globals()['STATE']}
-    return response_plain_text_ga(WELCOME_MESSAGE, False)
+    return response_plain_text_ga(WELCOME_MESSAGE, True)
 
 def response_plain_text_ga(output, endsession):
     """ create a simple json plain text response  """
 
     return {
-        'fulfillmentText': output
+        "payload": {
+            'google': {
+                "expectUserResponse": endsession,
+                "richResponse": {
+                "items": [
+                    {
+                        "simpleResponse": {
+                            "textToSpeech": output
+                        }
+                    }
+                ]
+                }
+            }
+        }
+    }
+
+def response_plain_context_ga(output, attributes, endsession):
+    """ create a simple json plain text response  """
+
+    return {
+        "payload": {
+            'google': {
+                "expectUserResponse": endsession,
+                "richResponse": {
+                "items": [
+                    {
+                        "simpleResponse": {
+                            "textToSpeech": output
+                        }
+                    }
+                ]
+                }
+            }
+        },
+        "outputContexts": attributes
     }
 
 def response_ga(attributes, speech_response):
