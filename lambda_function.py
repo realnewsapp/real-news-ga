@@ -13,8 +13,6 @@ api = NewsApiClient(api_key=os.environ['API_KEY'])
 def lambda_handler(event, context):
     """ App entry point  """
 
-    print(event)
-
     if event['queryResult']['action'] == "input.welcome":
         return on_launch()
     else:
@@ -39,9 +37,20 @@ def on_intent(request):
     if intent_name == "ListSources":
         return listSources(request)
     elif intent_name == "SourcedNews":
-        return sourcedNews(request, request, request)
+        return sourcedNews(request)
     elif intent_name == "Headlines":
-        return headlines(request, 0, None)
+        headline_index = 0
+        articlesToEmail = None
+        articles = None
+        for i in request['queryResult']['outputContexts']:
+            if 'parameters' in i:
+                if 'headline_index' in i['name'] and 'index' in i['parameters']:
+                    headline_index = i['parameters']['index']
+                elif 'articles' in i['name'] and 'articles' in i['parameters']:
+                    articles = i['parameters']['articles']
+                elif 'toemail' in i['name'] and 'articles' in i['parameters']:
+                    articlesToEmail = i['parameters']['articles']
+        return headlines(request, headline_index, articles, articlesToEmail)
     elif intent_name == "Next":
         return skip(request)
     elif intent_name == "Previous":
@@ -113,30 +122,37 @@ def listSources(request):
 
 def skip(session):
     headline_index = 0
+    articlesToEmail = None
     articles = None
     for i in session['queryResult']['outputContexts']:
-        if 'headline_index' in i['name']:
-            headline_index = i['parameters']['index']
-        elif 'articles' in i['name']:
-            articles = i['parameters']['articles']
+        if 'parameters' in i:
+            if 'headline_index' in i['name']:
+                headline_index = i['parameters']['index']
+            elif 'articles' in i['name']:
+                articles = i['parameters']['articles']
+            elif 'toemail' in i['name']:
+                articlesToEmail = i['parameters']['articles']
 
     headline_index += 1
-    return headlines(session, headline_index, articles)
+    return headlines(session, headline_index, articles, articlesToEmail)
 
 def previous(session):
     headline_index = 0
     articles = None
     for i in session['queryResult']['outputContexts']:
-        if 'headline_index' in i['name']:
-            headline_index = i['parameters']['index']
-        elif 'articles' in i['name']:
-            articles = i['parameters']['articles']
+        if 'parameters' in i:
+            if 'headline_index' in i['name']:
+                headline_index = i['parameters']['index']
+            elif 'articles' in i['name']:
+                articles = i['parameters']['articles']
+            elif 'toemail' in i['name']:
+                articlesToEmail = i['parameters']['articles']
     
     headline_index -= 1
-    return headlines(session, headline_index, articles)
+    return headlines(session, headline_index, articles, articlesToEmail)
 
 
-def headlines(session, headline_index, articles):
+def headlines(session, headline_index, articles, articlesToEmail):
     if articles is None:
         res = api.get_top_headlines()
 
@@ -162,7 +178,8 @@ def headlines(session, headline_index, articles):
     msg += REPROMPT_HEADLINE
         
 
-    articlesToEmail = []
+    if articlesToEmail is None:
+        articlesToEmail = []
 
     # if 'articlesToEmail' in session['attributes']:
     #     articlesToEmail = session['attributes']['articlesToEmail']
@@ -174,6 +191,9 @@ def headlines(session, headline_index, articles):
         elif 'articles' in i['name']:
             i['parameters'] = {}
             i['parameters']['articles'] = articles
+        elif 'toemail' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['articles'] = articlesToEmail
 
     # attributes = [
     #     # "state": globals()['STATE'], 
@@ -281,23 +301,35 @@ def read_headline(session):
 
     return response_plain_context_ga(msg, attributes, False)
 
-def sourcedNews(request, intent, session):
+def sourcedNews(session):
+    headline_index = 0
+    source = None
+    articlesToEmail = None
+    articles = None
+    for i in session['queryResult']['outputContexts']:
+        if 'parameters' in i:
+            if 'headline_index' in i['name'] and 'index' in i['parameters']:
+                headline_index = i['parameters']['index']
+            elif 'articles' in i['name'] and 'articles' in i['parameters']:
+                articles = i['parameters']['articles']
+            elif 'toemail' in i['name'] and 'articles' in i['parameters']:
+                articlesToEmail = i['parameters']['articles']
+            elif 'lastsource' in i['name'] and 'name' in i['parameters']:
+                source = i['parameters']['name']
 
-    if 'attributes' not in session or 'articles' not in session['attributes']:
+    requestedSource = session['queryResult']['parameters']['source']
 
-        requestedSource = intent['slots']['source']['value']
+    """ Split up and format the requested source """
+    formattedSource = ""
+    words = requestedSource.split()
 
-        """ Split up and format the requested source """
-        formattedSource = ""
-        words = requestedSource.split()
+    for i in range(len(words)):
+        if i == len(words) - 1:
+            formattedSource += words[i].lower()
+        else:
+            formattedSource += words[i].lower() + "-"
 
-        for i in range(len(words)):
-            if i == len(words) - 1:
-                formattedSource += words[i].lower()
-            else:
-                formattedSource += words[i].lower() + "-"
-
-
+    if articles is None or source != formattedSource:
         found = False
 
         for source in sourcesDict.values():
@@ -306,7 +338,7 @@ def sourcedNews(request, intent, session):
                 break
 
         if found == False:
-            return response({}, response_plain_text("Sorry. I couldn't find that source.", True))
+            return response_plain_text_ga("Sorry. I couldn't find that source.", True)
 
         res = api.get_top_headlines(sources=formattedSource)
 
@@ -317,21 +349,20 @@ def sourcedNews(request, intent, session):
 
 
         articles = res['articles']
-
-        session['attributes'] = {}
-        session['attributes']['headline_index'] = 0
-        session['attributes']['articles'] = articles
+        source = formattedSource
+        headline_index = 0
 
     else:
         # End if out of headlines, there's probably a better way to handle this
         # but this works for now
-        if session['attributes']['headline_index'] == len(session['attributes']['articles']):
+        if headline_index == len(articles):
             return do_stop(session)
-
-        articles = session['attributes']['articles']
+        
+        headline_index += 1
+        headline_index = int(headline_index)
     
     msg = ""
-    article = articles[session['attributes']['headline_index']]
+    article = articles[headline_index]
 
     # for article in articles:
     msg += "From " + article['source']['name'] + ": "
@@ -339,20 +370,32 @@ def sourcedNews(request, intent, session):
     msg += ". "
     msg += REPROMPT_HEADLINE
         
-    articlesToEmail = []
+    if articlesToEmail is None:
+        articlesToEmail = []
 
-    if 'articlesToEmail' in session['attributes']:
-        articlesToEmail = session['attributes']['articlesToEmail']
+    for i in session['queryResult']['outputContexts']:
+        if 'headline_index' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['index'] = headline_index
+        elif 'articles' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['articles'] = articles
+        elif 'toemail' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['articles'] = articlesToEmail
+        elif 'lastsource' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['name'] = source
 
-    attributes = {
-        "state": globals()['STATE'], 
-        "headline_index": session['attributes']['headline_index'],
-        "articles": session['attributes']['articles'],
-        "dialogStatus": "readTitle",
-        "articlesToEmail": articlesToEmail
-    }
+    # attributes = {
+    #     "state": globals()['STATE'], 
+    #     "headline_index": session['attributes']['headline_index'],
+    #     "articles": session['attributes']['articles'],
+    #     "dialogStatus": "readTitle",
+    #     "articlesToEmail": articlesToEmail
+    # }
 
-    return response(attributes, response_plain_text(msg, False))
+    return response_plain_context_ga(msg, session['queryResult']['outputContexts'], True)
 
 def do_stop(session):
     """  stop the app """
