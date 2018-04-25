@@ -35,7 +35,7 @@ HELP_MESSAGE = ("You can say something like, \"Give me the headlines\" to get th
                 "Give me the news from ESPN\". "
                 "What would you like to do?")
 
-LOGIN_MESSAGE = "You need to login with Amazon before we can send you an email. Check the Alexa app for more details."
+LOGIN_MESSAGE = "You need to login with Google before we can send you an email. Next time you run Real News, just say 'connect my Google account'."
 
 
 OUT_OF_REQUESTS = "Sorry! I can't make any more requests to the server right now. Please try again later."

@@ -13,8 +13,9 @@ api = NewsApiClient(api_key=os.environ['API_KEY'])
 def lambda_handler(event, context):
     """ App entry point  """
 
-    if event['queryResult']['action'] == "input.welcome":
-        return on_launch()
+    if 'action' in event['queryResult']:
+        if event['queryResult']['action'] == "input.welcome":
+            return on_launch()
     else:
         return on_intent(event)
 
@@ -40,59 +41,63 @@ def on_intent(request):
         return sourcedNews(request)
     elif intent_name == "Headlines":
         headline_index = 0
-        articlesToEmail = None
-        articles = None
         for i in request['queryResult']['outputContexts']:
             if 'parameters' in i:
                 if 'headline_index' in i['name'] and 'index' in i['parameters']:
                     headline_index = i['parameters']['index']
-                elif 'articles' in i['name'] and 'articles' in i['parameters']:
-                    articles = i['parameters']['articles']
-                elif 'toemail' in i['name'] and 'articles' in i['parameters']:
-                    articlesToEmail = i['parameters']['articles']
-        return headlines(request, headline_index, articles, articlesToEmail)
+        return headlines(request, headline_index)
     elif intent_name == "Next":
         return skip(request)
     elif intent_name == "Previous":
         return previous(request)
-    # elif intent_name == "AMAZON.YesIntent":
-    #     if 'headline_index' in session['attributes']:
-    #         if 'dialogStatus' in session['attributes']:
-    #             if session['attributes']['dialogStatus'] == 'readTitle':
-    #                 return read_headline(session)
-    #             elif session['attributes']['dialogStatus'] == 'readDescription':
-    #                 return ask_next_headline(session)
-    #             elif session['attributes']['dialogStatus'] == 'readEmail':
-    #                 session['attributes']['headline_index'] += 1
-    #                 return headlines(session)
-    #         return headlines(session)
+    elif intent_name == "AMAZON.YesIntent":
+        dialogStatus = None
+        for i in request['queryResult']['outputContexts']:
+            if 'parameters' in i:
+                if 'dialogstatus' in i['name'] and 'status' in i['parameters']:
+                    dialogStatus = i['parameters']['status']
 
+        for i in request['queryResult']['outputContexts']:
+            if 'parameters' in i:
+                if 'headline_index' in i['name'] and 'index' in i['parameters']:
+                    if dialogStatus is not None:
+                        if dialogStatus == 'readTitle':
+                            return read_headline(request)
+                        elif dialogStatus == 'readDescription':
+                            return ask_next_headline(request)
+                        elif dialogStatus == 'readEmail':
+                            headline_index = i['parameters']['index']
+                            headline_index += 1
+                            return headlines(request, headline_index)
+                    return headlines(request, 0)
+    elif intent_name == "AMAZON.NoIntent":
+        headline_index = -1
+        dialogStatus = None
+        for i in request['queryResult']['outputContexts']:
+            if 'parameters' in i:
+                if 'headline_index' in i['name'] and 'index' in i['parameters']:
+                    headline_index = i['parameters']['index']
+                if 'dialogstatus' in i['name'] and 'status' in i['parameters']:
+                    dialogStatus = i['parameters']['status']
 
-    # elif intent_name == "AMAZON.NoIntent":
-    #     if 'dialogStatus' in session['attributes']:
-    #         status = session['attributes']['dialogStatus']
-
-    #         if status == "readEmail":
-    #             return do_stop(session)
-    #         elif status == "readTitle":
-    #             if 'headline_index' in session['attributes']:
-    #                 session['attributes']['headline_index'] += 1
+        if dialogStatus is not None:
+            if dialogStatus == "readEmail":
+                return do_stop(request)
+            elif dialogStatus == "readTitle" or dialogStatus == "readDescription":
+                if headline_index != -1:
+                    headline_index += 1
+                else:
+                    headline_index = 0
                 
-    #             return headlines(session)
-    #         elif status == "readDescription":
-    #             if 'headline_index' in session['attributes']:
-    #                 session['attributes']['headline_index'] += 1
-                
-    #             return headlines(session)
-                
-    #     else:
-    #         print("headline_index didn't exist")
+                return headlines(request, headline_index)        
+        else:
+            print("headline_index didn't exist")
 
-    #     return headlines(session)
+        return headlines(request, headline_index)
 
     elif intent_name == "AMAZON.HelpIntent":
         return do_help()
-    elif intent_name == "AMAZON.StopIntent":
+    elif intent_name == "AMAZON.StopIntent" or intent_name == "Stop":
         return do_stop(request)
     elif intent_name == "AMAZON.CancelIntent":
         return do_stop(request)
@@ -118,41 +123,42 @@ def listSources(request):
 
     msg += "."
 
-    return response({}, response_plain_text(msg, True))
+    return response_plain_text_ga(msg, True)
 
 def skip(session):
     headline_index = 0
-    articlesToEmail = None
-    articles = None
     for i in session['queryResult']['outputContexts']:
         if 'parameters' in i:
             if 'headline_index' in i['name']:
                 headline_index = i['parameters']['index']
-            elif 'articles' in i['name']:
-                articles = i['parameters']['articles']
-            elif 'toemail' in i['name']:
-                articlesToEmail = i['parameters']['articles']
 
     headline_index += 1
-    return headlines(session, headline_index, articles, articlesToEmail)
+    return headlines(session, headline_index)
 
 def previous(session):
     headline_index = 0
-    articles = None
     for i in session['queryResult']['outputContexts']:
         if 'parameters' in i:
             if 'headline_index' in i['name']:
                 headline_index = i['parameters']['index']
-            elif 'articles' in i['name']:
-                articles = i['parameters']['articles']
-            elif 'toemail' in i['name']:
-                articlesToEmail = i['parameters']['articles']
     
     headline_index -= 1
-    return headlines(session, headline_index, articles, articlesToEmail)
+    return headlines(session, headline_index)
 
 
-def headlines(session, headline_index, articles, articlesToEmail):
+def headlines(session, headline_index):
+    articlesToEmail = None
+    articles = None
+    source = None
+    for i in session['queryResult']['outputContexts']:
+        if 'parameters' in i:
+            if 'articles' in i['name'] and 'articles' in i['parameters']:
+                articles = i['parameters']['articles']
+            elif 'toemail' in i['name'] and 'articles' in i['parameters']:
+                articlesToEmail = i['parameters']['articles']
+            elif 'lastsource' in i['name'] and 'name' in i['parameters']:
+                source = i['parameters']['name']
+
     if articles is None:
         res = api.get_top_headlines()
 
@@ -194,6 +200,12 @@ def headlines(session, headline_index, articles, articlesToEmail):
         elif 'toemail' in i['name']:
             i['parameters'] = {}
             i['parameters']['articles'] = articlesToEmail
+        elif 'lastsource' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['name'] = 'none'
+        elif 'dialogstatus' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['status'] = 'readTitle'
 
     # attributes = [
     #     # "state": globals()['STATE'], 
@@ -227,32 +239,76 @@ def headlines(session, headline_index, articles, articlesToEmail):
     return response_plain_context_ga(msg, session['queryResult']['outputContexts'], True)
 
 def ask_next_headline(session):
-    articlesToEmail = []
+    headline_index = 0
+    articlesToEmail = None
+    articles = None
+    source = None
+    for i in session['queryResult']['outputContexts']:
+        if 'parameters' in i:
+            if 'headline_index' in i['name'] and 'index' in i['parameters']:
+                headline_index = i['parameters']['index']
+            elif 'articles' in i['name'] and 'articles' in i['parameters']:
+                articles = i['parameters']['articles']
+            elif 'toemail' in i['name'] and 'articles' in i['parameters']:
+                articlesToEmail = i['parameters']['articles']
+            elif 'lastsource' in i['name'] and 'name' in i['parameters']:
+                source = i['parameters']['name']
 
-    if 'articlesToEmail' in session['attributes']:
-        articlesToEmail = session['attributes']['articlesToEmail']
+    if articlesToEmail is None:
+        articlesToEmail = []
 
+    headline_index = int(headline_index)
+    articlesToEmail.append(articles[headline_index])
 
-    articlesToEmail.append(session['attributes']['headline_index'])
+    for i in session['queryResult']['outputContexts']:
+        if 'headline_index' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['index'] = headline_index
+        elif 'articles' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['articles'] = articles
+        elif 'toemail' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['articles'] = articlesToEmail
+        elif 'lastsource' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['name'] = 'none'
+        elif 'dialogstatus' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['status'] = 'readEmail'
 
-    attributes = {
-        "state" : globals()['STATE'], 
-        "headline_index" : session['attributes']['headline_index'],
-        "articles" : session['queryResult']['outputContexts'][0]['articles'],
-        # "dialogStatus": "readEmail",
-        # "articlesToEmail": articlesToEmail
-    }
+    # attributes = {
+    #     "state" : globals()['STATE'], 
+    #     "headline_index" : session['attributes']['headline_index'],
+    #     "articles" : session['queryResult']['outputContexts'][0]['articles'],
+    #     # "dialogStatus": "readEmail",
+    #     # "articlesToEmail": articlesToEmail
+    # }
 
     # if session['attributes']['headline_index'] >= len(session['attributes']['articles']):
     #     return do_stop()
 
-    alexaMsg = "Okay. Would you like to hear the next headline?"
+    msg = "Okay. Would you like to hear the next headline?"
 
-    return response(attributes, response_plain_text(alexaMsg, False))
+    return response_plain_context_ga(msg, session['queryResult']['outputContexts'], True)
 
 def read_headline(session):
-    if 'articles' not in session['attributes']:
+    headline_index = 0
+    articlesToEmail = None
+    articles = None
+    source = None
+    for i in session['queryResult']['outputContexts']:
+        if 'parameters' in i:
+            if 'headline_index' in i['name'] and 'index' in i['parameters']:
+                headline_index = i['parameters']['index']
+            elif 'articles' in i['name'] and 'articles' in i['parameters']:
+                articles = i['parameters']['articles']
+            elif 'toemail' in i['name'] and 'articles' in i['parameters']:
+                articlesToEmail = i['parameters']['articles']
+            elif 'lastsource' in i['name'] and 'name' in i['parameters']:
+                source = i['parameters']['name']
 
+    if articles is None:
         res = api.get_top_headlines()
 
         if(res['status'] == "error"):
@@ -260,19 +316,16 @@ def read_headline(session):
                 return response({}, response_plain_text(OUT_OF_REQUESTS, True))
 
         articles = res['articles']
-        session['attributes']['headline_index'] = 0
-        session['attributes']['articles'] = articles
 
     else:
         # End if out of headlines, there's probably a better way to handle this
         # but this works for now
-        if session['attributes']['headline_index'] == len(session['attributes']['articles']):
+        if headline_index == len(articles):
             return do_stop(session)
-
-        articles = session['attributes']['articles']
     
     msg = ""
-    article = articles[session['attributes']['headline_index']]
+    headline_index = int(headline_index)
+    article = articles[headline_index]
 
     # for article in articles:
     
@@ -284,22 +337,40 @@ def read_headline(session):
     else:
         msg += NO_DESCRIPTION
 
-    articlesToEmail = []
+    if articlesToEmail is None:
+        articlesToEmail.append(articles[headline_index])
 
-    if 'articlesToEmail' in session['attributes']:
-        articlesToEmail = session['attributes']['articlesToEmail']
-    else:
-        articlesToEmail.append(session['attributes']['headline_index'])
+    # if 'articlesToEmail' in session['attributes']:
+    #     articlesToEmail = session['attributes']['articlesToEmail']
+    # else:
+    #     articlesToEmail.append(session['attributes']['headline_index'])
 
-    attributes = {
-        "state" : globals()['STATE'], 
-        "headline_index" : session['attributes']['headline_index'],
-        "articles" : session['attributes']['articles'],
-        "dialogStatus": "readDescription",
-        "articlesToEmail": articlesToEmail
-    }
+    for i in session['queryResult']['outputContexts']:
+        if 'headline_index' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['index'] = headline_index
+        elif 'articles' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['articles'] = articles
+        elif 'toemail' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['articles'] = articlesToEmail
+        elif 'lastsource' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['name'] = 'none'
+        elif 'dialogstatus' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['status'] = 'readDescription'
 
-    return response_plain_context_ga(msg, attributes, False)
+    # attributes = {
+    #     "state" : globals()['STATE'], 
+    #     "headline_index" : session['attributes']['headline_index'],
+    #     "articles" : session['attributes']['articles'],
+    #     "dialogStatus": "readDescription",
+    #     "articlesToEmail": articlesToEmail
+    # }
+
+    return response_plain_context_ga(msg, session['queryResult']['outputContexts'], True)
 
 def sourcedNews(session):
     headline_index = 0
@@ -386,6 +457,9 @@ def sourcedNews(session):
         elif 'lastsource' in i['name']:
             i['parameters'] = {}
             i['parameters']['name'] = source
+        elif 'dialogstatus' in i['name']:
+            i['parameters'] = {}
+            i['parameters']['status'] = 'readTitle'
 
     # attributes = {
     #     "state": globals()['STATE'], 
@@ -402,19 +476,26 @@ def do_stop(session):
 
     """ check if there are any articles to be emailed """
 
+    articlesToEmail = None
+    
+    if 'outputContexts' in session['queryResult']:
+        for i in session['queryResult']['outputContexts']:
+            if 'parameters' in i:
+                if 'toemail' in i['name'] and 'articles' in i['parameters']:
+                    articlesToEmail = i['parameters']['articles']
+
     user_email = ""
 
-    if 'articlesToEmail' in session['attributes']:
-        articlesToEmail = session['attributes']['articlesToEmail']
+    if articlesToEmail is not None:
 
         # Exit w/o email if there's nothing to email
         if not articlesToEmail:
-            attributes = {"state":globals()['STATE']}
-            return response(attributes, response_plain_text(EXIT_SKILL_MESSAGE, True))
+            # attributes = {"state":globals()['STATE']}
+            return response_plain_text_ga(EXIT_SKILL_MESSAGE, False)
 
-        if 'accessToken' not in session['user']:
-            attributes = {"state":globals()['STATE']}
-            return response(attributes, response_card_login('Real News - Email Setup', LOGIN_MESSAGE, True))
+        if 'accessToken' not in session:
+            # attributes = {"state":globals()['STATE']}
+            return response_plain_text_ga(LOGIN_MESSAGE, False)
         else:
             request_data = requests.get("https://api.amazon.com/user/profile?access_token=" + session['user']['accessToken'])
             request_json = request_data.json()
@@ -466,16 +547,16 @@ def do_stop(session):
         mail = Mail(from_email, subject, to_email, content)
         sendGrid = sg.client.mail.send.post(request_body=mail.get())
 
-    attributes = {"state":globals()['STATE']}
-    return response(attributes, response_plain_text(EXIT_SKILL_MESSAGE, True))
+    # attributes = {"state":globals()['STATE']}
+    return response_plain_text_ga(EXIT_SKILL_MESSAGE, False)
 
 def do_help():
     """ return a help response  """
 
     global STATE
     STATE = STATE_START
-    attributes = {"state":globals()['STATE']}
-    return response(attributes, response_plain_text(HELP_MESSAGE, False))
+    # attributes = {"state":globals()['STATE']}
+    return response_plain_text_ga(HELP_MESSAGE, True)
 
 def on_launch():
     """ called on Launch reply with a welcome message """
@@ -507,13 +588,13 @@ def get_welcome_message():
 
     return response_plain_text_ga(WELCOME_MESSAGE, True)
 
-def response_plain_text_ga(output, endsession):
+def response_plain_text_ga(output, continuesession):
     """ create a simple json plain text response  """
 
     return {
         "payload": {
             'google': {
-                "expectUserResponse": endsession,
+                "expectUserResponse": continuesession,
                 "richResponse": {
                 "items": [
                     {
@@ -527,13 +608,13 @@ def response_plain_text_ga(output, endsession):
         }
     }
 
-def response_plain_context_ga(output, attributes, endsession):
+def response_plain_context_ga(output, attributes, continuesession):
     """ create a simple json plain text response  """
 
     return {
         "payload": {
             'google': {
-                "expectUserResponse": endsession,
+                "expectUserResponse": continuesession,
                 "richResponse": {
                 "items": [
                     {
