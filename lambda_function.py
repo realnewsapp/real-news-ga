@@ -16,6 +16,8 @@ def lambda_handler(event, context):
     if 'action' in event['queryResult']:
         if event['queryResult']['action'] == "input.welcome":
             return on_launch()
+        else:
+            return on_intent(event)
     else:
         return on_intent(event)
 
@@ -70,7 +72,7 @@ def on_intent(request):
                             headline_index += 1
                             return headlines(request, headline_index)
                     return headlines(request, 0)
-    elif intent_name == "AMAZON.NoIntent":
+    elif intent_name == "AMAZON.NoIntent" or intent_name == "No":
         headline_index = -1
         dialogStatus = None
         for i in request['queryResult']['outputContexts']:
@@ -495,7 +497,7 @@ def do_stop(session):
 
         if 'accessToken' not in session:
             # attributes = {"state":globals()['STATE']}
-            return response_plain_text_ga(LOGIN_MESSAGE, False)
+            return response_followup_ga(LOGIN_MESSAGE, False)
         else:
             request_data = requests.get("https://api.amazon.com/user/profile?access_token=" + session['user']['accessToken'])
             request_json = request_data.json()
@@ -627,6 +629,30 @@ def response_plain_context_ga(output, attributes, continuesession):
             }
         },
         "outputContexts": attributes
+    }
+
+def response_followup_ga(output, continuesession):
+    """ create a simple json plain text response  """
+
+    return {
+        "payload": {
+            'google': {
+                "expectUserResponse": continuesession,
+                "richResponse": {
+                "items": [
+                    {
+                        "simpleResponse": {
+                            "textToSpeech": output
+                        }
+                    }
+                ]
+                }
+            }
+        },
+        "followupEventInput": {
+            "name": "Login",
+            "languageCode": "en-US",
+        }
     }
 
 def response_ga(attributes, speech_response):
